@@ -100,7 +100,7 @@ if [ ! -f "$kernelcomp" ]; then
     else
         cd src && cvs up -Pd; fi
  
-    cd /usr/src/sys/arch/`machine`/conf
+    cd "/usr/src/sys/arch/`machine`/conf"
     cp GENERIC.MP CUSTOM.MP 
     if ! grep -q TMPFS CUSTOM.MP && [ -f CUSTOM.MP ]; then
         echo "option  TMPFS" >> CUSTOM.MP; fi

@@ -1,10 +1,12 @@
 #!/bin/ksh
 
+
+
 ######################################################
 ###### BUILDS A FULL RELEASE IMAGE FOR OPENBSD #######
 ######################################################
 ###   This script will build a fully patched ISO   ###
-###   with patched sets and patched source code.   ###
+###   for -stable branch with patched sets.        ###
 ###   The iso can be burned to a CD and used for   ###
 ###   installing on other machines. All compiled   ###
 ###   code is signed using OPENBSD's signify.      ###
@@ -13,7 +15,7 @@
 ###   GPG/PGP key ID: 0x2B4B58FE                   ###
 ######################################################
 # BSD license                                        #
-# Copyright (c) 2014 ERIK ADLER erik.adler@mensa.se  #
+# Copyright (c) 2017 ERIK ADLER erik.adler@mensa.se  #
 # aka Onryo                                          #
 # GPG/PGP key ID: 0x2B4B58FE                         #
 #                                                    #
@@ -35,179 +37,190 @@
 # OF OR IN CONNECTION WITH THE USE OR PERFORMANCE    #
 # OF THIS SOFTWARE.                                  #
 ######################################################
-# Supports the following architectures as of 2014:   #   
-# alpha amd64 arm armish armv7 aviion hppa hppa64    #
-# i386 ia64 landisk loongson luna88k m88k macppc     #
-# mips64 octeon powerpc sgi sh socppc solbourne      # 
-# sparc sparc64 vax zaurus                           #
+# Supports the following architectures as of 2017:   #   
+# alpha amd64 armv7 hppa i386 landisk IO-DATA        #
+# loongson luna88k macppc octeon sgi socppc sparc64  #
 ######################################################
 
-CORES=$(sysctl hw.ncpufound)
-BUILDLOG=/var/log
-mkdir -p ${BUILDLOG}/buildlogs
-# Using the following ram tmpfs while building will 
+
+# Full path to this script
+scriptpath="/root/MakeISO.sh"
+
+# Your cvs server of choice.
+cvsserver="anoncvs@anoncvs.eu.openbsd.org"
+
+# This is where builds end up. Need space here.
+store=/root 
+
+
+###################################
+
+
+path1="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
+export PATH="$path1:/usr/local/bin:/usr/local/sbin"
+
+test -f "$scriptpath" || { print \
+          "Enter the correct name and path to this script"; exit 1; }
+[[ $(id -u) = 0 ]] || { print "Must be root to run script"; exit 1; }
+bsdver="OPENBSD_`uname -r | sed 's/\./_/'`"
+
+cores=$(sysctl hw.ncpufound)
+buildlog=/var/log
+mkdir -p "$buildlog/buildlogs"
+
+
+# Setting NAME to CUSTOM.MP will enable temfs RAM. This will
 # speed up the compile time by mitigating ufs slow IOs.
-# Be warned that data can be lost in case of a crash or 
-# power outage.  
-mount -t tmpfs tmpfs ${BUILDLOG}/buildlogs 
-mount -t tmpfs tmpfs /usr/obj
+# Be warned that data can be lost in case of a crash or
+# power outage. Using GENERIC is recommend since OBSD 6.0
 
-export NAME=GENERIC.MP
-#export NAME=GENERIC
+# export NAME=GENERIC.MP
+export NAME=CUSTOM.MP  ## using custom will enable tempfs in kernel
 
-#### 1. BUILD AND INSTALL A NEW KERNEL 
-##############################################
-# This will build a kernel for the architecture 
-# from above. MP is for multiprocessor.
-
-cd /usr/src/sys/arch/`machine`/conf 
-config ${NAME} 
-cd /usr/src/sys/arch/`machine`/compile/${NAME} 
-make clean 
-make -j${CORES#*=} 2>&1 | tee ${BUILDLOG}/buildlogs/logfile_1_build_kernel
-make install 
-# shutdown -r now
+if [ "$NAME" == "CUSTOM.MP" ]; then
+    if  df | grep -q tmpfs; then
+        umount "$buildlog/buildlogs"
+        umount /usr/obj
+        umount /usr/xobj; fi
+    mount -t tmpfs tmpfs "$buildlog/buildlogs" 
+    mount -t tmpfs tmpfs /usr/obj
+    mount -t tmpfs tmpfs /usr/xobj; fi
 
 
-#### 2. BUILD AND INSTALL SYSTEM  
-##############################################
-# After this step we will now be running the
-# built system from this step. 
+############# KERNEL ##############
 
-cd /usr/obj 
+kernelcomp="$store/compileflag"
 
-mkdir -p old_obj #Safely delete old objs in backgroupd with & 
-mv * old_obj
-rm -rf old_obj & 
+if [ ! -f "$kernelcomp" ]; then
+    rm -f "$buildlog/buildlogs/*"
 
+    cd /usr
+    if [ ! -d src ]; then
+        cvs -d "$cvsserver":/cvs checkout -r"$bsdver" -P src
+    else
+        cd src && cvs up -Pd; fi
+ 
+    cd /usr/src/sys/arch/`machine`/conf
+    cp GENERIC.MP CUSTOM.MP 
+    if ! grep -q TMPFS CUSTOM.MP && [ -f CUSTOM.MP ]; then
+        echo "option  TMPFS" >> CUSTOM.MP; fi
+   
+    config "$NAME"
+    cd "/usr/src/sys/arch/`machine`/compile/$NAME"
+    make clean
+    make "-j${cores#*=}" 2>&1 | tee "$buildlog/buildlogs/logfile_1_kernel"
+    make install
+    touch "$kernelcomp"
+    echo "$scriptpath" > /etc/rc.firsttime
+    mv "$buildlog/buildlogs/logfile_1_kernel" "$store/logfile_1_kernel"
+    shutdown -r now
+    sleep 30
+else
+    rm "$kernelcomp"
+    mv "$store/logfile_1_kernel" "$buildlog/buildlogs/logfile_1_kernel"; fi
+
+############ USERLAND #############
+
+mkdir -p /usr/obj
+cd /usr/obj && mkdir -p .old && mv * .old
+rm -rf .old &
+
+mkdir -p /usr/src
 cd /usr/src
-make obj 
-cd /usr/src/etc 
+make obj
+cd /usr/src/etc
 env DESTDIR=/ make distrib-dirs
-cd /usr/src 
-make -j${CORES#*=} build 2>&1 | tee ${BUILDLOG}/buildlogs/logfile_2_build_system
+cd /usr/src
+make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_2_system"
 
+########## SYSTEM XORG ############
 
-#### 3. MAKE THE SYSTEM RELEASE AND VALIDATE 
-##############################################
-# In the last step we built the system that is
-# now running. We now will build our release  
-# sets for system and put them in the RELEASEDIR. 
-# base55.tgz, comp55.tgz, etc55.tgz game55.tgz
-# man55.tgz 
+cd /usr/xobj && mkdir -p .old && mv * .old
+rm -rf .old &
 
-export DESTDIR=/root/dest
-export RELEASEDIR=/root/rel
+cd /usr
+if [ ! -d xenocara ]; then
+    cvs -d "$cvsserver":/cvs checkout -r"$bsdver" -P xenocara
+else
+    cd /usr/xenocara && cvs up -Pd; fi
+cd /usr/xenocara
+make bootstrap
+make obj
 
-test -d ${DESTDIR} 
-mv ${DESTDIR} ${DESTDIR}.old     #  safely deletes OLD DESTDIR in bkground & 
-rm -rf ${DESTDIR}.old &                  
-mkdir -p ${DESTDIR} ${RELEASEDIR}   
+make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_3_xorg"
 
-cd /usr/src/etc 
-make release 2>&1 | tee ${BUILDLOG}/buildlogs/logfile_3_sys_release 
-cd /usr/src/distrib/sets 
-sh checkflist 
-cd ${RELEASEDIR}
-mv SHA256 SHA256_temp
+######## CREATE WORK DIR ##########
 
+export DESTDIR="$store/dest"
+export RELEASEDIR="$store/rel"
 
-#### 4. BUILD AND INSTALL XENOCARA  
-##############################################
-# In this step we will build and install the
-# X windows. This will be installed in /usr/X11R6
+test -d "$DESTDIR" && mv "$DESTDIR" "$DESTDIR-"
+test -d "$DESTDIR-" && rm -rf "$DESTDIR-" &
+mkdir -p "$DESTDIR" "$RELEASEDIR"
 
-cd /usr/xobj 
-mkdir -p old_xobj 
-mv * old_xobj 
-rm -rf old_xobj & 
+######### XENOCARA SETS ###########
 
 cd /usr/xenocara
-make bootstrap 
-make obj 
-make -j${CORES#*=} build 2>&1 | tee ${BUILDLOG}/buildlogs/logfile_4_build_xenocara
+make release 2>&1 | tee "$buildlog/buildlogs/logfile_4_build_xeno_sets"
+mv "$RELEASEDIR/SHA256" "$RELEASEDIR/SHA256_tmp"
 
+########## SYSTEM SETS ############
 
-#### 5. MAKE THE SYSTEM RELEASE AND VALIDATE 
-##############################################
-# In the last step we built xenocara (X.org) 
-# We now will build our release sets for X 
-# windows. These sets will be added with the 
-# system sets in the RELEASEDIR. 
-# xbase55.tgz xetc.tgz xfont55.tgz xserv55.tgz
-# xshare55.tgz. 
- 
-test -d ${DESTDIR} 
-mv ${DESTDIR} ${DESTDIR}.old 
-rm -rf ${DESTDIR}.old & 
-mkdir -p ${DESTDIR} ${RELEASEDIR}
+cd /usr/src/etc
+make release 2>&1 | tee "$buildlog/buildlogs/logfile_5_build_sys_sets"
+cd /usr/src/distrib/sets
+sh checkflist
+cat "$RELEASEDIR/SHA256_tmp" >> "$RELEASEDIR/SHA256"
+rm -f "$RELEASEDIR/SHA256_tmp"
 
-cd /usr/xenocara # build inside /usr/xenocara
-make release 2>&1 | tee ${BUILDLOG}/buildlogs/logfile_5_xenocara_release
-cd ${RELEASEDIR}
-cat SHA256 >> SHA256_temp && mv SHA256_temp SHA256
+###### MAKE RELEASE STRUCTURE #####
 
-
-#### 6. ORGANIZE TO RELEASE STRUCTURE
-##############################################
-# In this step the sets will be organized
-# into the same structure found on the images
-# CDs ie OpenBSD/5.6/amd64.
-
-export IMGROOT=/root
-cd ${IMGROOT}
-test -d OpenBSD && mv OpenBSD OpenBSD.previous
-mkdir -p ${IMGROOT}/OpenBSD
-
-mv ${RELEASEDIR} `machine`
+cd "$store" 
+test -d OpenBSD && mv OpenBSD OpenBSD- 
+test -d OpenBSD- && rm -rf OpenBSD- &
+mkdir "$store/OpenBSD"
+mv "$RELEASEDIR" `machine`
 mkdir `uname -r`
 mv `machine` `uname -r`/
 mv `uname -r` OpenBSD/
 
-cd ${IMGROOT}/OpenBSD/`uname -r`
-tar zcf src_stable_errata.tar.gz /usr/src
-tar zcf xenocara_stable_errata.tar.gz /usr
-tar zcf ports_stable.tar.gz /usr
-tar zcf buildlogs.tar.gz ${BUILDLOG}/buildlogs
-cksum -a SHA256 *.gz > SHA256
+####### SIGNING CHECKSUMS #########
 
-
-#### 7. SIGN ALL SETS USING OUR OWN KEY
-##############################################
-# We use OpenBSD signify to make a private key
-# if we don't have one. Then we will sign our 
-# sets so we later can verify they have not been
-# tampered with. If you have not already made a 
-# private key then uncomment the key generator.
-# The patched code is also signed and archived.
-
-cd ${IMGROOT}/OpenBSD/`uname -r`/`machine`
-#echo "Generate key pair to sign your release with."
-#signify -G -p /etc/signify/rolled-stable-base.pub -s /etc/signify/rolled-stable-base.sec
-echo "Sign your sets with your key."
-signify -S -s /etc/signify/rolled-stable-base.sec -m SHA256 -e -x SHA256.sig
+cd "$store/OpenBSD/`uname -r`/`machine`"
+if [ ! -f /etc/signify/stable-base.sec ]; then
+    print "Generate a private key"
+    signify -G -p /etc/signify/stable-base.pub -s /etc/signify/stable-base.sec
+else
+    print "Using your old private key"; fi    
+signify -S -s /etc/signify/stable-base.sec -m SHA256 -e -x SHA256.sig
 ls -1 > index.txt
-cd ${IMGROOT}/OpenBSD/`uname -r`
-echo "Sign your patched source with your key."
-signify -S -s /etc/signify/rolled-stable-base.sec -m SHA256 -e -x SHA256.sig
-ls -1 > index.txt
+cp /etc/signify/stable-base.pub "$store/OpenBSD/`uname -r`/"
 
-#### 8. ISO IMAGE THAT CAN BE BURNED TO DISK 
-##############################################
-# This will make an iso with the sets in the 
-# correct places for installing from disk. The image 
-# is a fully patched OS that is signed with your 
-# own key. Your patched source code is included 
-# and signed also. When new errata patches are
-# released just add them to your source repos.
+########## BUILDING ISO ###########
 
-export PKG_PATH=http://ftp.eu.openbsd.org/pub/OpenBSD/`uname -r`/packages/`machine`
-pkg_add cdrtools
-cd ${IMGROOT}
-mkisofs -r -no-emul-boot -b `uname -r`/`machine`/cdbr -c boot.catalog -o install-full.iso ${IMGROOT}/OpenBSD
+cd /usr
+if [ ! -d ports ]; then
+    cvs -d "$cvsserver":/cvs checkout -r"${bsdver}" -P ports
+else
+    cd ports && cvs up -Pd; fi
 
-# clean up.
-##############################################
-cd ${BUILDLOG}/buildlogs && mkdir -p tmp_logs && mv * tmp_logs
-rm -rf tmp_logs &
-unset RELEASEDIR DESTDIR IMGROOT PKG_PATH CORES NAME BUILDLOG
+cd /usr/ports/sysutils/cdrtools 
+
+if /usr/ports/infrastructure/bin/out-of-date | grep -q sysutils/cdrtools; then
+    make update
+    print "found update for cdrtools"
+else
+    make install; fi
+cd "$store"
+ver=`uname -r | sed 's/\.//'`
+mkisofs -r -no-emul-boot -b `uname -r`/`machine`/cdbr -c boot.catalog -o \
+    "install${ver}.iso" "$store/OpenBSD"
+
+####### CHECKING BUILD LOGS #######
+
+print "Checking build logs for errors"
+if  grep -r "* Error " "$buildlog/buildlogs/"; then
+    print "Try deleting src xenocara src and ports and running script again."
+    print "CVS source code could be corrupt. Are paths set correctly?"
+else
+    print "No Errors found in build logs"; fi

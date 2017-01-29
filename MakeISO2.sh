@@ -44,7 +44,7 @@
 
 
 # Full path to this script
-scriptpath="/root/MakeISO.sh"
+scriptpath="/root/MakeISO2.sh"
 
 # Your cvs server of choice.
 cvsserver="anoncvs@anoncvs.eu.openbsd.org"
@@ -98,8 +98,8 @@ if [ ! -f "$kernelcomp" ]; then
     if [ ! -d src ]; then
         cvs -d "$cvsserver":/cvs checkout -r"$bsdver" -P src
     else
-        cd src && cvs up -Pd || { print "KERNEL faild cd cvs up"; exit 1; }
-
+        { cd src && cvs up -Pd; } || { print \
+           "KERNEL faild cd cvs up"; exit 1; }
     fi
     cd "/usr/src/sys/arch/$(machine)/conf" || { print \
                      "KERNEL failed cd conf"; exit 1; }
@@ -129,11 +129,11 @@ grep -rq "* Error " "$buildlog/buildlogs/logfile_1_kernel" && { print \
 ############ USERLAND #############
 
 mkdir -p /usr/obj
-cd /usr/obj && mkdir -p .old || { print "USERLAND failed cd or mkdir"; exit 1; } 
+{ cd /usr/obj && mkdir -p .old; } || { print "USERLAND failed cd or mkdir"; exit 1; } 
 touch dot && mv * .old && rm -rf .old & ### moves and delets in the background.
 
 mkdir -p /usr/src
-cd /usr/src && make obj || { print "USERLAND failed cd or make obj"; exit 1; }
+{ cd /usr/src && make obj; } || { print "USERLAND failed cd or make obj"; exit 1; }
 cd /usr/src/etc || { print "USERLAND failed to cd into etc"; exit 1; }
 env DESTDIR=/ make distrib-dirs
 cd /usr/src || { print "USERLAND failed to cd into src"; exit 1; }
@@ -144,15 +144,15 @@ grep -rq "* Error " "$buildlog/buildlogs/logfile_2_system" && { print \
 
 ########## SYSTEM XORG ############
 
-cd /usr/xobj && mkdir -p .old || { print "XORG failed cd mkdir"; exit 1; }
+{ cd /usr/xobj && mkdir -p .old; } || { print "XORG failed cd mkdir"; exit 1; }
 touch dot && mv * .old && rm -rf .old & ### deletes .old in the background.
 
 cd /usr || { print "XORG failed cd usr"; exit 1; }
 if [ ! -d xenocara ]; then
     cvs -d "$cvsserver":/cvs checkout -r"$bsdver" -P xenocara
 else
-    cd /usr/xenocara && cvs up -Pd || { print \
-           "XORG failed cd or cvs up"; exit 1; }
+    { cd /usr/xenocara && cvs up -Pd; } || { print \
+               "XORG failed cd or cvs up"; exit 1; }
 fi
 cd /usr/xenocara || { print "XORG failed cd xenocara"; exit 1; }
 make bootstrap
@@ -225,7 +225,7 @@ cd /usr || { print "ISO failed to cd to usr"; exit 1; }
 if [ ! -d ports ]; then
     cvs -d "$cvsserver":/cvs checkout -r"${bsdver}" -P ports
 else
-    cd ports && cvs up -Pd || { print "ISO failed cd or cvs"; exit 1; }
+    { cd ports && cvs up -Pd; } || { print "ISO failed cd or cvs"; exit 1; }
 fi
 cd /usr/ports/sysutils/cdrtools || { print "ISO failed cd cdrtools"; exit 1; }
 

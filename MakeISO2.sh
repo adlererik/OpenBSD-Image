@@ -123,7 +123,7 @@ else
     mv "$store/logfile_1_kernel" "$buildlog/buildlogs/logfile_1_kernel"
 fi
 
-grep -rq "* Error " "$buildlog/buildlogs/logfile_1_kernel" && { print \
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_1_kernel" && { print \
                                      "build error on kernel"; exit 1; }
 
 ############ USERLAND #############
@@ -139,7 +139,7 @@ env DESTDIR=/ make distrib-dirs
 cd /usr/src || { print "USERLAND failed to cd into src"; exit 1; }
 make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_2_system"
 
-grep -rq "* Error " "$buildlog/buildlogs/logfile_2_system" && { print \
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_2_system" && { print \
                                    "build error on userland"; exit 1; }
 
 ########## SYSTEM XORG ############
@@ -160,7 +160,7 @@ make obj
 
 make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_3_xorg"
 
-grep -rq "* Error " "$buildlog/buildlogs/logfile_3_xorg" && { print \
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_3_xorg" && { print \
                                "build error in system xorg"; exit 1; }
 
 ######## CREATE WORK DIR ##########
@@ -176,7 +176,7 @@ mkdir -p "$DESTDIR" "$RELEASEDIR"
 cd /usr/xenocara || { print "XENO SETS failed cd xenocara"; exit 1; }
 make release 2>&1 | tee "$buildlog/buildlogs/logfile_4_build_xeno_sets"
 
-grep -rq "* Error " "$buildlog/buildlogs/logfile_4_build_xeno_sets" && \
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_4_build_xeno_sets" && \
                        { print "build error in xenocara sets"; exit 1; }
 
 mv "$RELEASEDIR/SHA256" "$RELEASEDIR/SHA256_tmp" || { print \
@@ -191,7 +191,7 @@ sh checkflist
 cat "$RELEASEDIR/SHA256_tmp" >> "$RELEASEDIR/SHA256"
 rm -f "$RELEASEDIR/SHA256_tmp"
 
-grep -rq "* Error " "$buildlog/buildlogs/logfile_5_build_sys_sets" && { print \
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_5_build_sys_sets" && { print \
                                         "build error in system sets"; exit 1; }
 
 ###### MAKE RELEASE STRUCTURE #####
@@ -236,13 +236,13 @@ else
     make install
 fi
 cd "$store" || { print "ISO failed to cd into store"; exit 1; }
-mkisofs -r -no-emul-boot -b $(uname -r)/$(machine)/cdbr -c boot.catalog -o \
+mkisofs -r -no-emul-boot -b "$(uname -r)/$(machine)/cdbr" -c boot.catalog -o \
     "install${ver}.iso" "$store/OpenBSD"
 
 ####### CHECKING BUILD LOGS #######
 
 print "Checking build logs for errors"
-if  grep -r "* Error " "$buildlog/buildlogs/"; then
+if  grep -rF '* Error ' "$buildlog/buildlogs/"; then
     print "Try deleting src xenocara src and ports and running script again."
     print "CVS source code could be corrupt. Are paths set correctly?"
 else

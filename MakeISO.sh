@@ -130,7 +130,7 @@ fi
 
 mkdir -p /usr/obj
 cd /usr/obj && mkdir -p .old || { print "USERLAND failed cd or mkdir"; exit 1; } 
-mv * .old && rm -rf .old & ### moves and delets in the background.
+touch dot && mv * .old && rm -rf .old & ### moves and delets in the background.
 
 mkdir -p /usr/src
 cd /usr/src && make obj || { print "USERLAND failed cd or make obj"; exit 1; }
@@ -141,9 +141,8 @@ make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_2_system"
 
 ########## SYSTEM XORG ############
 
-cd /usr/xobj && mkdir -p .old && mv * .old || { print \ 
-                "XORG failed cd mkdir or mv"; exit 1; }
-rm -rf .old & ### deletes .old in the background.
+cd /usr/xobj && mkdir -p .old || { print "XORG failed cd mkdir"; exit 1; }
+touch dot && mv * .old && rm -rf .old & ### deletes .old in the background.
 
 cd /usr || { print "XORG failed cd usr"; exit 1; }
 if [ ! -d xenocara ]; then

@@ -129,11 +129,12 @@ grep -rqF '* Error ' "$buildlog/buildlogs/logfile_1_kernel" && { print \
 ############ USERLAND #############
 
 mkdir -p /usr/obj
-{ cd /usr/obj && mkdir -p .old; } || { print "USERLAND failed cd or mkdir"; exit 1; } 
-touch dot && mv -- * .old && rm -rf .old & ### moves and delets in the background.
+{ cd /usr/obj && mkdir -p .old; } || { print \
+      "USERLAND failed cd or mkdir"; exit 1; } 
+touch dot && mv -- * .old && rm -rf .old & ### mv and delets in the background.
 
 mkdir -p /usr/src
-{ cd /usr/src && make obj; } || { print "USERLAND failed cd or make obj"; exit 1; }
+{ cd /usr/src && make obj; } || { print "USERLAND ! cd or make obj"; exit 1; }
 cd /usr/src/etc || { print "USERLAND failed to cd into etc"; exit 1; }
 env DESTDIR=/ make distrib-dirs
 cd /usr/src || { print "USERLAND failed to cd into src"; exit 1; }

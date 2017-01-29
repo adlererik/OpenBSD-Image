@@ -58,7 +58,7 @@ export NAME=CUSTOM.MP
 
 ###################################
 
-test -f "$scriptpath" || { print \
+[[ -f "$scriptpath" ]] || { print \
           "Enter the correct name and path to this script"; exit 1; }
 [[ $(id -u) = 0 ]] || { print "Must be root to run script"; exit 1; }
 
@@ -70,9 +70,6 @@ ver=$(uname -r | tr -d .)
 
 paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
 export PATH="$paths:/usr/local/bin:/usr/local/sbin"
-
-export DESTDIR="$store/dest"
-export RELEASEDIR="$store/rel"
 
 # Setting NAME to CUSTOM.MP above will enable temfs RAM. This will
 # speed up the compile time by mitigating ufs slow IOs.
@@ -126,6 +123,9 @@ else
     mv "$store/logfile_1_kernel" "$buildlog/buildlogs/logfile_1_kernel"
 fi
 
+grep -rq "* Error " "$buildlog/buildlogs/logfile_1_kernel" && { print \
+                                     "build error on kernel"; exit 1; }
+
 ############ USERLAND #############
 
 mkdir -p /usr/obj
@@ -138,6 +138,9 @@ cd /usr/src/etc || { print "USERLAND failed to cd into etc"; exit 1; }
 env DESTDIR=/ make distrib-dirs
 cd /usr/src || { print "USERLAND failed to cd into src"; exit 1; }
 make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_2_system"
+
+grep -rq "* Error " "$buildlog/buildlogs/logfile_2_system" && { print \
+                                   "build error on userland"; exit 1; }
 
 ########## SYSTEM XORG ############
 
@@ -157,8 +160,13 @@ make obj
 
 make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_3_xorg"
 
+grep -rq "* Error " "$buildlog/buildlogs/logfile_3_xorg" && { print \
+                               "build error in system xorg"; exit 1; }
+
 ######## CREATE WORK DIR ##########
 
+export DESTDIR="$store/dest"
+export RELEASEDIR="$store/rel"
 [[ -d "$DESTDIR" ]] && mv "$DESTDIR" "$DESTDIR-"
 [[ -d "$DESTDIR-" ]] && rm -rf "$DESTDIR-" &
 mkdir -p "$DESTDIR" "$RELEASEDIR"
@@ -167,6 +175,9 @@ mkdir -p "$DESTDIR" "$RELEASEDIR"
 
 cd /usr/xenocara || { print "XENO SETS failed cd xenocara"; exit 1; }
 make release 2>&1 | tee "$buildlog/buildlogs/logfile_4_build_xeno_sets"
+grep -rq "* Error " "$buildlog/buildlogs/logfile_4_build_xeno_sets" && \
+                       { print "build error in xenocara sets"; exit 1; }
+
 mv "$RELEASEDIR/SHA256" "$RELEASEDIR/SHA256_tmp" || { print \
                               "no SHA256_tmp made"; exit 1; }
 
@@ -178,6 +189,9 @@ cd /usr/src/distrib/sets || { print "SYS SETS failed cd sets"; exit 1; }
 sh checkflist
 cat "$RELEASEDIR/SHA256_tmp" >> "$RELEASEDIR/SHA256"
 rm -f "$RELEASEDIR/SHA256_tmp"
+
+grep -rq "* Error " "$buildlog/buildlogs/logfile_5_build_sys_sets" && { print \
+                                        "build error in system sets"; exit 1; }
 
 ###### MAKE RELEASE STRUCTURE #####
 

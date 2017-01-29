@@ -52,9 +52,11 @@ cvsserver="anoncvs@anoncvs.eu.openbsd.org"
 # This is where builds end up. Need space here.
 store=/root 
 
+# using custom will enable tempfs in kernel
+# export NAME=GENERIC.MP
+export NAME=CUSTOM.MP
 
 ###################################
-
 
 paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
 export PATH="$paths:/usr/local/bin:/usr/local/sbin"
@@ -67,17 +69,10 @@ bsdver="OPENBSD_$(uname -r | tr . _)"
 export DESTDIR="$store/dest"
 export RELEASEDIR="$store/rel"
 
-cores="$(sysctl hw.ncpufound)"
-buildlog=/var/log
-mkdir -p "$buildlog/buildlogs"
-
-# Setting NAME to CUSTOM.MP will enable temfs RAM. This will
+# Setting NAME to CUSTOM.MP above will enable temfs RAM. This will
 # speed up the compile time by mitigating ufs slow IOs.
 # Be warned that data can be lost in case of a crash or
 # power outage. Using GENERIC is recommend since OBSD 6.0
-
-# export NAME=GENERIC.MP
-export NAME=CUSTOM.MP  ## using custom will enable tempfs in kernel
 
 if [ "$NAME" == "CUSTOM.MP" ]; then
     if  df | grep -q tmpfs; then
@@ -89,6 +84,10 @@ if [ "$NAME" == "CUSTOM.MP" ]; then
     mount -t tmpfs tmpfs /usr/obj
     mount -t tmpfs tmpfs /usr/xobj
     fi
+
+cores="$(sysctl hw.ncpufound)"
+buildlog=/var/log
+mkdir -p "$buildlog/buildlogs"
 
 ############# KERNEL ##############
 

@@ -130,7 +130,7 @@ grep -rq "* Error " "$buildlog/buildlogs/logfile_1_kernel" && { print \
 
 mkdir -p /usr/obj
 { cd /usr/obj && mkdir -p .old; } || { print "USERLAND failed cd or mkdir"; exit 1; } 
-touch dot && mv * .old && rm -rf .old & ### moves and delets in the background.
+touch dot && mv -- * .old && rm -rf .old & ### moves and delets in the background.
 
 mkdir -p /usr/src
 { cd /usr/src && make obj; } || { print "USERLAND failed cd or make obj"; exit 1; }
@@ -145,7 +145,7 @@ grep -rq "* Error " "$buildlog/buildlogs/logfile_2_system" && { print \
 ########## SYSTEM XORG ############
 
 { cd /usr/xobj && mkdir -p .old; } || { print "XORG failed cd mkdir"; exit 1; }
-touch dot && mv * .old && rm -rf .old & ### deletes .old in the background.
+touch dot && mv -- * .old && rm -rf .old & ### deletes .old in the background.
 
 cd /usr || { print "XORG failed cd usr"; exit 1; }
 if [ ! -d xenocara ]; then
@@ -200,10 +200,10 @@ cd "$store" || { print "STRUCTURE failed cd store"; exit 1; }
 test -d OpenBSD && mv OpenBSD OpenBSD- 
 test -d OpenBSD- && rm -rf OpenBSD- &
 mkdir "$store/OpenBSD"
-mv "$RELEASEDIR" $(machine)
-mkdir $(uname -r)
-mv $(machine) $(uname -r)/
-mv $(uname -r) OpenBSD/ || { print "STRUCTURE move into OpenBSD"; exit 1; }
+mv "$RELEASEDIR" "$(machine)"
+mkdir "$(uname -r)"
+mv "$(machine)" "$(uname -r)"/
+mv "$(uname -r)" OpenBSD/ || { print "STRUCTURE move into OpenBSD"; exit 1; }
 
 ####### SIGNING CHECKSUMS #########
 

@@ -58,13 +58,17 @@ export NAME=CUSTOM.MP
 
 ###################################
 
-paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
-export PATH="$paths:/usr/local/bin:/usr/local/sbin"
-
 test -f "$scriptpath" || { print \
           "Enter the correct name and path to this script"; exit 1; }
 [[ $(id -u) = 0 ]] || { print "Must be root to run script"; exit 1; }
+
 bsdver="OPENBSD_$(uname -r | tr . _)"
+kernelcomp="$store/compileflag"
+cores="$(sysctl hw.ncpufound)"
+buildlog=/var/log
+
+paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
+export PATH="$paths:/usr/local/bin:/usr/local/sbin"
 
 export DESTDIR="$store/dest"
 export RELEASEDIR="$store/rel"
@@ -73,6 +77,8 @@ export RELEASEDIR="$store/rel"
 # speed up the compile time by mitigating ufs slow IOs.
 # Be warned that data can be lost in case of a crash or
 # power outage. Using GENERIC is recommend since OBSD 6.0
+
+mkdir -p "$buildlog/buildlogs"
 
 if [ "$NAME" == "CUSTOM.MP" ]; then
     if  df | grep -q tmpfs; then
@@ -85,13 +91,7 @@ if [ "$NAME" == "CUSTOM.MP" ]; then
     mount -t tmpfs tmpfs /usr/xobj
     fi
 
-cores="$(sysctl hw.ncpufound)"
-buildlog=/var/log
-mkdir -p "$buildlog/buildlogs"
-
 ############# KERNEL ##############
-
-kernelcomp="$store/compileflag"
 
 if [ ! -f "$kernelcomp" ]; then
     rm -f "$buildlog/buildlogs/*"

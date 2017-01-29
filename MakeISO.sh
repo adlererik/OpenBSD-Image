@@ -150,7 +150,7 @@ touch dot && mv -- * .old && rm -rf .old &   ### deletes .old in the background
 
 cd /usr || { print "XORG failed cd usr"; exit 1; }
 if [[ ! -d xenocara ]]; then
-    cvs -d "$cvsserver:/cvs checkout" -r"$bsdver" -P xenocara
+    cvs -d "$cvsserver:/cvs" checkout -r"$bsdver" -P xenocara
 else
     { cd /usr/xenocara && cvs up -Pd; } || { print \
                "XORG failed cd or cvs up"; exit 1; }
@@ -224,7 +224,7 @@ cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
 
 cd /usr || { print "ISO failed to cd to usr"; exit 1; }
 if [[ ! -d ports ]]; then
-    cvs -d "$cvsserver:/cvs checkout" -r"${bsdver}" -P ports
+    cvs -d "$cvsserver:/cvs" checkout -r"${bsdver}" -P ports
 else
     { cd ports && cvs up -Pd; } || { print "ISO failed cd or cvs"; exit 1; }
 fi

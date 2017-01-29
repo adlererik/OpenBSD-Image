@@ -66,6 +66,7 @@ bsdver="OPENBSD_$(uname -r | tr . _)"
 kernelcomp="$store/compileflag"
 cores="$(sysctl hw.ncpufound)"
 buildlog=/var/log
+ver=$(uname -r | tr -d .)
 
 paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
 export PATH="$paths:/usr/local/bin:/usr/local/sbin"
@@ -159,8 +160,8 @@ make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_3_xorg"
 
 ######## CREATE WORK DIR ##########
 
-test -d "$DESTDIR" && mv "$DESTDIR" "$DESTDIR-"
-test -d "$DESTDIR-" && rm -rf "$DESTDIR-" &
+[[ -d "$DESTDIR" ]] && mv "$DESTDIR" "$DESTDIR-"
+[[ -d "$DESTDIR-" ]] && rm -rf "$DESTDIR-" &
 mkdir -p "$DESTDIR" "$RELEASEDIR"
 
 ######### XENOCARA SETS ###########
@@ -192,7 +193,8 @@ mv $(uname -r) OpenBSD/ || { print "STRUCTURE move into OpenBSD"; exit 1; }
 
 ####### SIGNING CHECKSUMS #########
 
-cd "$store/OpenBSD/$(uname -r)/$(machine)"
+cd "$store/OpenBSD/$(uname -r)/$(machine)" || { print \
+               "SIGNING faild cd to machine"; exit 1; }
 if [ ! -f /etc/signify/stable-base.sec ]; then
     print "Generate a private key"
     signify -G -p /etc/signify/stable-base.pub -s /etc/signify/stable-base.sec
@@ -205,13 +207,13 @@ cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
 
 ########## BUILDING ISO ###########
 
-cd /usr
+cd /usr || { print "ISO failed to cd to usr"; exit 1; }
 if [ ! -d ports ]; then
     cvs -d "$cvsserver":/cvs checkout -r"${bsdver}" -P ports
 else
-    cd ports && cvs up -Pd
+    cd ports && cvs up -Pd || { print "ISO failed cd or cvs"; exit 1; }
 fi
-cd /usr/ports/sysutils/cdrtools 
+cd /usr/ports/sysutils/cdrtools || { print "ISO failed cd cdrtools"; exit 1; }
 
 if /usr/ports/infrastructure/bin/out-of-date | grep -q sysutils/cdrtools; then
     make update
@@ -219,8 +221,7 @@ if /usr/ports/infrastructure/bin/out-of-date | grep -q sysutils/cdrtools; then
 else
     make install
 fi
-cd "$store"
-ver=$(uname -r | tr -d .)
+cd "$store" || { print "ISO failed to cd into store"; exit 1; }
 mkisofs -r -no-emul-boot -b $(uname -r)/$(machine)/cdbr -c boot.catalog -o \
     "install${ver}.iso" "$store/OpenBSD"
 

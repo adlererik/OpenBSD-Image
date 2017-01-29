@@ -64,6 +64,9 @@ test -f "$scriptpath" || { print \
 [[ $(id -u) = 0 ]] || { print "Must be root to run script"; exit 1; }
 bsdver="OPENBSD_$(uname -r | tr . _)"
 
+export DESTDIR="$store/dest"
+export RELEASEDIR="$store/rel"
+
 cores="$(sysctl hw.ncpufound)"
 buildlog=/var/log
 mkdir -p "$buildlog/buildlogs"
@@ -157,38 +160,36 @@ make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_3_xorg"
 
 ######## CREATE WORK DIR ##########
 
-export DESTDIR="$store/dest"
-export RELEASEDIR="$store/rel"
-
 test -d "$DESTDIR" && mv "$DESTDIR" "$DESTDIR-"
 test -d "$DESTDIR-" && rm -rf "$DESTDIR-" &
 mkdir -p "$DESTDIR" "$RELEASEDIR"
 
 ######### XENOCARA SETS ###########
 
-cd /usr/xenocara
+cd /usr/xenocara || { print "XENO SETS failed cd xenocara"; exit 1; }
 make release 2>&1 | tee "$buildlog/buildlogs/logfile_4_build_xeno_sets"
-mv "$RELEASEDIR/SHA256" "$RELEASEDIR/SHA256_tmp"
+mv "$RELEASEDIR/SHA256" "$RELEASEDIR/SHA256_tmp" || { print \
+                              "no SHA256_tmp made"; exit 1; }
 
 ########## SYSTEM SETS ############
 
-cd /usr/src/etc
+cd /usr/src/etc || { print "SYS SETS failed cd etc"; exit 1; }
 make release 2>&1 | tee "$buildlog/buildlogs/logfile_5_build_sys_sets"
-cd /usr/src/distrib/sets
+cd /usr/src/distrib/sets || { print "SYS SETS failed cd sets"; exit 1; }
 sh checkflist
 cat "$RELEASEDIR/SHA256_tmp" >> "$RELEASEDIR/SHA256"
 rm -f "$RELEASEDIR/SHA256_tmp"
 
 ###### MAKE RELEASE STRUCTURE #####
 
-cd "$store" 
+cd "$store" || { print "STRUCTURE failed cd store"; exit 1; }
 test -d OpenBSD && mv OpenBSD OpenBSD- 
 test -d OpenBSD- && rm -rf OpenBSD- &
 mkdir "$store/OpenBSD"
 mv "$RELEASEDIR" $(machine)
 mkdir $(uname -r)
 mv $(machine) $(uname -r)/
-mv $(uname -r) OpenBSD/
+mv $(uname -r) OpenBSD/ || { print "STRUCTURE move into OpenBSD"; exit 1; }
 
 ####### SIGNING CHECKSUMS #########
 

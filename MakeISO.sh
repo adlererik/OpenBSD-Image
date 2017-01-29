@@ -56,18 +56,17 @@ store=/root
 ###################################
 
 
-path1="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
-export PATH="$path1:/usr/local/bin:/usr/local/sbin"
+paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
+export PATH="$paths:/usr/local/bin:/usr/local/sbin"
 
 test -f "$scriptpath" || { print \
           "Enter the correct name and path to this script"; exit 1; }
 [[ $(id -u) = 0 ]] || { print "Must be root to run script"; exit 1; }
-bsdver="OPENBSD_`uname -r | sed 's/\./_/'`"
+bsdver="OPENBSD_$(uname -r | tr . _)"
 
-cores=$(sysctl hw.ncpufound)
+cores="$(sysctl hw.ncpufound)"
 buildlog=/var/log
 mkdir -p "$buildlog/buildlogs"
-
 
 # Setting NAME to CUSTOM.MP will enable temfs RAM. This will
 # speed up the compile time by mitigating ufs slow IOs.
@@ -81,11 +80,12 @@ if [ "$NAME" == "CUSTOM.MP" ]; then
     if  df | grep -q tmpfs; then
         umount "$buildlog/buildlogs"
         umount /usr/obj
-        umount /usr/xobj; fi
+        umount /usr/xobj
+    fi
     mount -t tmpfs tmpfs "$buildlog/buildlogs" 
     mount -t tmpfs tmpfs /usr/obj
-    mount -t tmpfs tmpfs /usr/xobj; fi
-
+    mount -t tmpfs tmpfs /usr/xobj
+    fi
 
 ############# KERNEL ##############
 
@@ -94,19 +94,22 @@ kernelcomp="$store/compileflag"
 if [ ! -f "$kernelcomp" ]; then
     rm -f "$buildlog/buildlogs/*"
 
-    cd /usr
+    cd /usr || { print "KERNEL failed to cd into usr"; exit 1; }
     if [ ! -d src ]; then
         cvs -d "$cvsserver":/cvs checkout -r"$bsdver" -P src
     else
-        cd src && cvs up -Pd; fi
- 
-    cd "/usr/src/sys/arch/`machine`/conf"
+        cd src && cvs up -Pd || { print "KERNEL faild cd cvs up"; exit 1; }
+
+    fi
+    cd "/usr/src/sys/arch/$(machine)/conf" || { print \
+                     "KERNEL failed cd conf"; exit 1; }
     cp GENERIC.MP CUSTOM.MP 
     if ! grep -q TMPFS CUSTOM.MP && [ -f CUSTOM.MP ]; then
-        echo "option  TMPFS" >> CUSTOM.MP; fi
-   
+        echo "option  TMPFS" >> CUSTOM.MP
+    fi
     config "$NAME"
-    cd "/usr/src/sys/arch/`machine`/compile/$NAME"
+    cd "/usr/src/sys/arch/$(machine)/compile/$NAME" || { print \
+                            "KERNEL faild cd to name"; exit 1; }
     make clean
     make "-j${cores#*=}" 2>&1 | tee "$buildlog/buildlogs/logfile_1_kernel"
     make install
@@ -117,33 +120,36 @@ if [ ! -f "$kernelcomp" ]; then
     sleep 30
 else
     rm "$kernelcomp"
-    mv "$store/logfile_1_kernel" "$buildlog/buildlogs/logfile_1_kernel"; fi
+    mv "$store/logfile_1_kernel" "$buildlog/buildlogs/logfile_1_kernel"
+fi
 
 ############ USERLAND #############
 
 mkdir -p /usr/obj
-cd /usr/obj && mkdir -p .old && mv * .old
-rm -rf .old &
+cd /usr/obj && mkdir -p .old || { print "USERLAND failed cd or mkdir"; exit 1; } 
+mv * .old && rm -rf .old & ### moves and delets in the background.
 
 mkdir -p /usr/src
-cd /usr/src
-make obj
-cd /usr/src/etc
+cd /usr/src && make obj || { print "USERLAND failed cd or make obj"; exit 1; }
+cd /usr/src/etc || { print "USERLAND failed to cd into etc"; exit 1; }
 env DESTDIR=/ make distrib-dirs
-cd /usr/src
+cd /usr/src || { print "USERLAND failed to cd into src"; exit 1; }
 make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_2_system"
 
 ########## SYSTEM XORG ############
 
-cd /usr/xobj && mkdir -p .old && mv * .old
-rm -rf .old &
+cd /usr/xobj && mkdir -p .old && mv * .old || { print \ 
+                "XORG failed cd mkdir or mv"; exit 1; }
+rm -rf .old & ### deletes .old in the background.
 
-cd /usr
+cd /usr || { print "XORG failed cd usr"; exit 1; }
 if [ ! -d xenocara ]; then
     cvs -d "$cvsserver":/cvs checkout -r"$bsdver" -P xenocara
 else
-    cd /usr/xenocara && cvs up -Pd; fi
-cd /usr/xenocara
+    cd /usr/xenocara && cvs up -Pd || { print \
+           "XORG failed cd or cvs up"; exit 1; }
+fi
+cd /usr/xenocara || { print "XORG failed cd xenocara"; exit 1; }
 make bootstrap
 make obj
 
@@ -179,22 +185,23 @@ cd "$store"
 test -d OpenBSD && mv OpenBSD OpenBSD- 
 test -d OpenBSD- && rm -rf OpenBSD- &
 mkdir "$store/OpenBSD"
-mv "$RELEASEDIR" `machine`
-mkdir `uname -r`
-mv `machine` `uname -r`/
-mv `uname -r` OpenBSD/
+mv "$RELEASEDIR" $(machine)
+mkdir $(uname -r)
+mv $(machine) $(uname -r)/
+mv $(uname -r) OpenBSD/
 
 ####### SIGNING CHECKSUMS #########
 
-cd "$store/OpenBSD/`uname -r`/`machine`"
+cd "$store/OpenBSD/$(uname -r)/$(machine)"
 if [ ! -f /etc/signify/stable-base.sec ]; then
     print "Generate a private key"
     signify -G -p /etc/signify/stable-base.pub -s /etc/signify/stable-base.sec
 else
-    print "Using your old private key"; fi    
+    print "Using your old private key"
+fi    
 signify -S -s /etc/signify/stable-base.sec -m SHA256 -e -x SHA256.sig
 ls -1 > index.txt
-cp /etc/signify/stable-base.pub "$store/OpenBSD/`uname -r`/"
+cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
 
 ########## BUILDING ISO ###########
 
@@ -202,18 +209,19 @@ cd /usr
 if [ ! -d ports ]; then
     cvs -d "$cvsserver":/cvs checkout -r"${bsdver}" -P ports
 else
-    cd ports && cvs up -Pd; fi
-
+    cd ports && cvs up -Pd
+fi
 cd /usr/ports/sysutils/cdrtools 
 
 if /usr/ports/infrastructure/bin/out-of-date | grep -q sysutils/cdrtools; then
     make update
     print "found update for cdrtools"
 else
-    make install; fi
+    make install
+fi
 cd "$store"
-ver=`uname -r | sed 's/\.//'`
-mkisofs -r -no-emul-boot -b `uname -r`/`machine`/cdbr -c boot.catalog -o \
+ver=$(uname -r | tr -d .)
+mkisofs -r -no-emul-boot -b $(uname -r)/$(machine)/cdbr -c boot.catalog -o \
     "install${ver}.iso" "$store/OpenBSD"
 
 ####### CHECKING BUILD LOGS #######
@@ -223,4 +231,5 @@ if  grep -r "* Error " "$buildlog/buildlogs/"; then
     print "Try deleting src xenocara src and ports and running script again."
     print "CVS source code could be corrupt. Are paths set correctly?"
 else
-    print "No Errors found in build logs"; fi
+    print "No Errors found in build logs" 
+fi

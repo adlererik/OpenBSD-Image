@@ -10,7 +10,7 @@
 ###   The iso can be burned to a CD and used for   ###
 ###   installing on other machines. All compiled   ###
 ###   code is signed using OPENBSD's signify.      ###
-###                                                ### 
+###                                                ###
 ###   By Erik Adler aka Onryo.                     ###
 ###   GPG/PGP key ID: 0x2B4B58FE                   ###
 ######################################################
@@ -37,7 +37,7 @@
 # OF OR IN CONNECTION WITH THE USE OR PERFORMANCE    #
 # OF THIS SOFTWARE.                                  #
 ######################################################
-# Supports the following architectures as of 2017:   #   
+# Supports the following architectures as of 2017:   #  
 # alpha amd64 armv7 hppa i386 landisk IO-DATA        #
 # loongson luna88k macppc octeon sgi socppc sparc64  #
 ######################################################
@@ -78,7 +78,7 @@ export PATH="$paths:/usr/local/bin:/usr/local/sbin"
 
 mkdir -p "$buildlog/buildlogs"
 
-if [ "$NAME" == "CUSTOM.MP" ]; then
+if [[ "$NAME" == "CUSTOM.MP" ]]; then
     if  df | grep -q tmpfs; then
         umount "$buildlog/buildlogs"
         umount /usr/obj
@@ -91,20 +91,20 @@ if [ "$NAME" == "CUSTOM.MP" ]; then
 
 ############# KERNEL ##############
 
-if [ ! -f "$kernelcomp" ]; then
+if [[ ! -f "$kernelcomp" ]]; then
     rm -f "$buildlog/buildlogs/*"
 
     cd /usr || { print "KERNEL failed to cd into usr"; exit 1; }
-    if [ ! -d src ]; then
-        cvs -d "$cvsserver":/cvs checkout -r"$bsdver" -P src
+    if [[ ! -d src ]]; then
+        cvs -d "$cvsserver:/cvs" checkout -r"$bsdver" -P src
     else
-        cd src && cvs up -Pd || { print "KERNEL faild cd cvs up"; exit 1; }
-
+        { cd src && cvs up -Pd; } || { print \
+           "KERNEL faild cd cvs up"; exit 1; }
     fi
     cd "/usr/src/sys/arch/$(machine)/conf" || { print \
                      "KERNEL failed cd conf"; exit 1; }
     cp GENERIC.MP CUSTOM.MP 
-    if ! grep -q TMPFS CUSTOM.MP && [ -f CUSTOM.MP ]; then
+    if ! grep -q TMPFS CUSTOM.MP && [[ -f CUSTOM.MP ]]; then
         echo "option  TMPFS" >> CUSTOM.MP
     fi
     config "$NAME"
@@ -123,36 +123,37 @@ else
     mv "$store/logfile_1_kernel" "$buildlog/buildlogs/logfile_1_kernel"
 fi
 
-grep -rq "* Error " "$buildlog/buildlogs/logfile_1_kernel" && { print \
-                                     "build error on kernel"; exit 1; }
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_1_kernel" && { print \
+                                      "build error on kernel"; exit 1; }
 
 ############ USERLAND #############
 
 mkdir -p /usr/obj
-cd /usr/obj && mkdir -p .old || { print "USERLAND failed cd or mkdir"; exit 1; } 
-touch dot && mv * .old && rm -rf .old & ### moves and delets in the background.
+{ cd /usr/obj && mkdir -p .old; } || { print \
+      "USERLAND failed cd or mkdir"; exit 1; } 
+touch dot && mv -- * .old && rm -rf .old & ### mv and delets in the background.
 
 mkdir -p /usr/src
-cd /usr/src && make obj || { print "USERLAND failed cd or make obj"; exit 1; }
+{ cd /usr/src && make obj; } || { print "USERLAND ! cd or make obj"; exit 1; }
 cd /usr/src/etc || { print "USERLAND failed to cd into etc"; exit 1; }
 env DESTDIR=/ make distrib-dirs
 cd /usr/src || { print "USERLAND failed to cd into src"; exit 1; }
 make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_2_system"
 
-grep -rq "* Error " "$buildlog/buildlogs/logfile_2_system" && { print \
-                                   "build error on userland"; exit 1; }
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_2_system" && { print \
+                                    "build error on userland"; exit 1; }
 
 ########## SYSTEM XORG ############
 
-cd /usr/xobj && mkdir -p .old || { print "XORG failed cd mkdir"; exit 1; }
-touch dot && mv * .old && rm -rf .old & ### deletes .old in the background.
+{ cd /usr/xobj && mkdir -p .old; } || { print "XORG failed cd mkdir"; exit 1; }
+touch dot && mv -- * .old && rm -rf .old &   ### deletes .old in the background
 
 cd /usr || { print "XORG failed cd usr"; exit 1; }
-if [ ! -d xenocara ]; then
-    cvs -d "$cvsserver":/cvs checkout -r"$bsdver" -P xenocara
+if [[ ! -d xenocara ]]; then
+    cvs -d "$cvsserver:/cvs checkout" -r"$bsdver" -P xenocara
 else
-    cd /usr/xenocara && cvs up -Pd || { print \
-           "XORG failed cd or cvs up"; exit 1; }
+    { cd /usr/xenocara && cvs up -Pd; } || { print \
+               "XORG failed cd or cvs up"; exit 1; }
 fi
 cd /usr/xenocara || { print "XORG failed cd xenocara"; exit 1; }
 make bootstrap
@@ -160,7 +161,7 @@ make obj
 
 make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_3_xorg"
 
-grep -rq "* Error " "$buildlog/buildlogs/logfile_3_xorg" && { print \
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_3_xorg" && { print \
                                "build error in system xorg"; exit 1; }
 
 ######## CREATE WORK DIR ##########
@@ -173,11 +174,11 @@ mkdir -p "$DESTDIR" "$RELEASEDIR"
 
 ######### XENOCARA SETS ###########
 
-cd /usr/xenocara || { print "XENO SETS failed cd xenocara"; exit 1; }
+cd /usr/xenocara || { print "XENO SET failed cd to xenocara"; exit 1; }
 make release 2>&1 | tee "$buildlog/buildlogs/logfile_4_build_xeno_sets"
 
-grep -rq "* Error " "$buildlog/buildlogs/logfile_4_build_xeno_sets" && \
-                       { print "build error in xenocara sets"; exit 1; }
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_4_build_xeno_sets" && \
+                        { print "build error in xenocara sets"; exit 1; }
 
 mv "$RELEASEDIR/SHA256" "$RELEASEDIR/SHA256_tmp" || { print \
                               "no SHA256_tmp made"; exit 1; }
@@ -186,30 +187,30 @@ mv "$RELEASEDIR/SHA256" "$RELEASEDIR/SHA256_tmp" || { print \
 
 cd /usr/src/etc || { print "SYS SETS failed cd etc"; exit 1; }
 make release 2>&1 | tee "$buildlog/buildlogs/logfile_5_build_sys_sets"
-cd /usr/src/distrib/sets || { print "SYS SETS failed cd sets"; exit 1; }
+cd /usr/src/distrib/sets || { print "SYS SETS failed cd set"; exit 1; }
 sh checkflist
 cat "$RELEASEDIR/SHA256_tmp" >> "$RELEASEDIR/SHA256"
 rm -f "$RELEASEDIR/SHA256_tmp"
 
-grep -rq "* Error " "$buildlog/buildlogs/logfile_5_build_sys_sets" && { print \
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_5_build_sys_sets" && { print \
                                         "build error in system sets"; exit 1; }
 
 ###### MAKE RELEASE STRUCTURE #####
 
 cd "$store" || { print "STRUCTURE failed cd store"; exit 1; }
 test -d OpenBSD && mv OpenBSD OpenBSD- 
-test -d OpenBSD- && rm -rf OpenBSD- &
+test -d OpenBSD- && rm -rf OpenBSD- & ### Delete old dir in background
 mkdir "$store/OpenBSD"
-mv "$RELEASEDIR" $(machine)
-mkdir $(uname -r)
-mv $(machine) $(uname -r)/
-mv $(uname -r) OpenBSD/ || { print "STRUCTURE move into OpenBSD"; exit 1; }
+mv "$RELEASEDIR" "$(machine)"
+mkdir "$(uname -r)"
+mv "$(machine)" "$(uname -r)"/
+mv "$(uname -r)" OpenBSD/ || { print "STRUCTURE move into OpenBSD"; exit 1; }
 
 ####### SIGNING CHECKSUMS #########
 
 cd "$store/OpenBSD/$(uname -r)/$(machine)" || { print \
                "SIGNING faild cd to machine"; exit 1; }
-if [ ! -f /etc/signify/stable-base.sec ]; then
+if [[ ! -f /etc/signify/stable-base.sec ]]; then
     print "Generate a private key"
     signify -G -p /etc/signify/stable-base.pub -s /etc/signify/stable-base.sec
 else
@@ -222,10 +223,10 @@ cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
 ########## BUILDING ISO ###########
 
 cd /usr || { print "ISO failed to cd to usr"; exit 1; }
-if [ ! -d ports ]; then
-    cvs -d "$cvsserver":/cvs checkout -r"${bsdver}" -P ports
+if [[ ! -d ports ]]; then
+    cvs -d "$cvsserver:/cvs checkout" -r"${bsdver}" -P ports
 else
-    cd ports && cvs up -Pd || { print "ISO failed cd or cvs"; exit 1; }
+    { cd ports && cvs up -Pd; } || { print "ISO failed cd or cvs"; exit 1; }
 fi
 cd /usr/ports/sysutils/cdrtools || { print "ISO failed cd cdrtools"; exit 1; }
 
@@ -236,13 +237,13 @@ else
     make install
 fi
 cd "$store" || { print "ISO failed to cd into store"; exit 1; }
-mkisofs -r -no-emul-boot -b $(uname -r)/$(machine)/cdbr -c boot.catalog -o \
+mkisofs -r -no-emul-boot -b "$(uname -r)/$(machine)/cdbr" -c boot.catalog -o \
     "install${ver}.iso" "$store/OpenBSD"
 
 ####### CHECKING BUILD LOGS #######
 
 print "Checking build logs for errors"
-if  grep -r "* Error " "$buildlog/buildlogs/"; then
+if  grep -rF '* Error ' "$buildlog/buildlogs/"; then
     print "Try deleting src xenocara src and ports and running script again."
     print "CVS source code could be corrupt. Are paths set correctly?"
 else

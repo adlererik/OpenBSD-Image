@@ -65,8 +65,9 @@ export NAME=CUSTOM.MP
 bsdver="OPENBSD_$(uname -r | tr . _)"
 kernelcomp="$store/compileflag"
 cores="$(sysctl hw.ncpufound)"
-buildlog=/var/log
 ver="$(uname -r | tr -d .)"
+buildlog=/var/log
+
 
 paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
 export PATH="$paths:/usr/local/bin:/usr/local/sbin"
@@ -96,7 +97,7 @@ if [[ ! -f "$kernelcomp" ]]; then
 
     cd /usr || { print "KERNEL failed to cd into usr"; exit 1; }
     if [[ ! -d src ]]; then
-        cvs -d "$cvsserver:/cvs" checkout -r"$bsdver" -P src
+        cvs -d "$cvsserver:/cvs" checkout "-r$bsdver" -P src
     else
         { cd src && cvs up -Pd; } || { print \
            "KERNEL faild cd cvs up"; exit 1; }
@@ -131,7 +132,7 @@ grep -rqF '* Error ' "$buildlog/buildlogs/logfile_1_kernel" && { print \
 mkdir -p /usr/obj
 { cd /usr/obj && mkdir -p .old; } || { print \
       "USERLAND failed cd or mkdir"; exit 1; } 
-touch dot && mv -- * .old && rm -rf .old & ### mv and delets in the background.
+touch dot && mv -- * .old && rm -rf .old & ### mv and delete in the background
 
 mkdir -p /usr/src
 { cd /usr/src && make obj; } || { print "USERLAND ! cd or make obj"; exit 1; }
@@ -150,7 +151,7 @@ touch dot && mv -- * .old && rm -rf .old &   ### deletes .old in the background
 
 cd /usr || { print "XORG failed cd usr"; exit 1; }
 if [[ ! -d xenocara ]]; then
-    cvs -d "$cvsserver:/cvs" checkout -r"$bsdver" -P xenocara
+    cvs -d "$cvsserver:/cvs" checkout "-r$bsdver" -P xenocara
 else
     { cd /usr/xenocara && cvs up -Pd; } || { print \
                "XORG failed cd or cvs up"; exit 1; }
@@ -203,7 +204,7 @@ test -d OpenBSD- && rm -rf OpenBSD- & ### Delete old dir in background
 mkdir "$store/OpenBSD"
 mv "$RELEASEDIR" "$(machine)"
 mkdir "$(uname -r)"
-mv "$(machine)" "$(uname -r)"/
+mv "$(machine)" "$(uname -r)/"
 mv "$(uname -r)" OpenBSD/ || { print "STRUCTURE move into OpenBSD"; exit 1; }
 
 ####### SIGNING CHECKSUMS #########
@@ -247,5 +248,7 @@ if  grep -rF '* Error ' "$buildlog/buildlogs/"; then
     print "Try deleting src xenocara src and ports and running script again."
     print "CVS source code could be corrupt. Are paths set correctly?"
 else
-    print "No Errors found in build logs" 
+    v="$(sysctl -n kern.version)"; v="${v#* }"; v="${v%% *}"
+    print "NO ERRORS FOUND IN BUILD LOGS"
+    print "YOU ARE TRACKING $v"
 fi

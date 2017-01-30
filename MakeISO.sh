@@ -2,8 +2,8 @@
 
 
 
-### POSIX version without QEFS for sh
-
+###       POSIX version without QEFS for sh        ###     
+###                                                ###
 ######################################################
 ###### BUILDS A FULL RELEASE IMAGE FOR OPENBSD #######
 ######################################################
@@ -44,7 +44,8 @@
 # loongson luna88k macppc octeon sgi socppc sparc64  #
 ######################################################
 
-## If you change this script be mindful of word splitting
+## Be mindful of word splitting. If you change stuff
+## and are not sure use ""
 
 # Full path to this script
 scriptpath=/root/MakeISO.sh

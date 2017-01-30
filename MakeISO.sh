@@ -2,6 +2,8 @@
 
 
 
+### POSIX version without QEFS for sh
+
 ######################################################
 ###### BUILDS A FULL RELEASE IMAGE FOR OPENBSD #######
 ######################################################
@@ -42,6 +44,7 @@
 # loongson luna88k macppc octeon sgi socppc sparc64  #
 ######################################################
 
+## If you change this script be mindful of word splitting
 
 # Full path to this script
 scriptpath=/root/MakeISO.sh
@@ -59,7 +62,7 @@ export NAME=CUSTOM.MP
 ###################################
 
 [ -f $scriptpath ] || { printf \
-          "Enter the correct name and path to this script"; exit 1; }
+           "Enter the correct name and path to this script"; exit 1; }
 [ "$(id -u)" = 0 ] || { printf "Must be root to run script"; exit 1; }
 
 bsdver=OPENBSD_$(uname -r | tr . _)

@@ -66,7 +66,7 @@ bsdver="OPENBSD_$(uname -r | tr . _)"
 kernelcomp="$store/compileflag"
 cores="$(sysctl hw.ncpufound)"
 buildlog=/var/log
-ver=$(uname -r | tr -d .)
+ver="$(uname -r | tr -d .)"
 
 paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
 export PATH="$paths:/usr/local/bin:/usr/local/sbin"

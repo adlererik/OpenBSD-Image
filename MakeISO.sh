@@ -68,7 +68,6 @@ cores="$(sysctl hw.ncpufound)"
 ver="$(uname -r | tr -d .)"
 buildlog=/var/log
 
-
 paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
 export PATH="$paths:/usr/local/bin:/usr/local/sbin"
 

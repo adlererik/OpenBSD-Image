@@ -237,5 +237,5 @@ if  grep -rF '* Error ' $buildlog/buildlogs/; then
 else
     v=$(sysctl -n kern.version); v=${v#* }; v=${v%% *}
     printf "NO ERRORS FOUND IN BUILD LOGS"
-    printf "YOU ARE TRACKING $v"
+    printf "YOU ARE TRACKING %s\n" "$v"
 fi

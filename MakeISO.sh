@@ -148,7 +148,7 @@ touch dot && mv -- * .old && rm -rf .old &   ### deletes .old in the background
 
 cd /usr || exit 1;
 if [ ! -d xenocara ]; then
-    cvs -d $cvsserver:/cvs checkout "-r$bsdver" -P xenocara
+    cvs -d $cvsserver:/cvs checkout -r "$bsdver" -P xenocara
 else
     { cd /usr/xenocara && cvs up -Pd; } || exit 1;
 fi

@@ -2,7 +2,7 @@
 
 
 
-###       POSIX version without QEFS for sh        ###     
+###           POSIX version without QEFS           ###  
 ###                                                ###
 ######################################################
 ###### BUILDS A FULL RELEASE IMAGE FOR OPENBSD #######
@@ -39,7 +39,7 @@
 # OF OR IN CONNECTION WITH THE USE OR PERFORMANCE    #
 # OF THIS SOFTWARE.                                  #
 ######################################################
-# Supports the following architectures as of 2017:   #  
+# Supports the following architectures as of 2017:   #
 # alpha amd64 armv7 hppa i386 landisk IO-DATA        #
 # loongson luna88k macppc octeon sgi socppc sparc64  #
 ######################################################
@@ -100,7 +100,7 @@ if [ ! -f $kernelcomp ]; then
 
     cd /usr || exit 1;
     if [ ! -d src ]; then
-        cvs -d $cvsserver:/cvs checkout "-r$bsdver" -P src
+        cvs -d $cvsserver:/cvs checkout -r "$bsdver" -P src
     else
         { cd src && cvs up -Pd; } || exit 1; 
     fi
@@ -172,10 +172,9 @@ mkdir -p $DESTDIR $RELEASEDIR
 
 cd /usr/xenocara || exit 1;
 make release 2>&1 | tee $buildlog/buildlogs/logfile_4_build_xeno_sets
+mv $RELEASEDIR/SHA256 $RELEASEDIR/SHA256_tmp || exit 1;
 
 grep -rqF '* Error ' $buildlog/buildlogs/logfile_4_build_xeno_sets && exit 1; 
-
-mv $RELEASEDIR/SHA256 $RELEASEDIR/SHA256_tmp || exit 1;
 
 ########## SYSTEM SETS ############
 
@@ -191,8 +190,8 @@ grep -rqF '* Error ' $buildlog/buildlogs/logfile_5_build_sys_sets && exit 1;
 ###### MAKE RELEASE STRUCTURE #####
 
 cd "$store" || exit 1;
-test -d OpenBSD && mv OpenBSD OpenBSD- 
-test -d OpenBSD- && rm -rf OpenBSD- & ### Delete old dir in background
+[ -d OpenBSD ] && mv OpenBSD OpenBSD-
+[ -d OpenBSD- ] && rm -rf OpenBSD- & ### Delete old dir in background
 mkdir $store/OpenBSD
 mv $RELEASEDIR "$(machine)"
 mkdir "$(uname -r)"
@@ -209,7 +208,11 @@ else
     printf "Using your old private key\n"
 fi    
 signify -S -s /etc/signify/stable-base.sec -m SHA256 -e -x SHA256.sig
-ls -1 > index.txt
+
+for f in *; do ### avoids using ls -l 
+    [ -e "$f" ] || continue; echo "$f" >> index.txt
+done
+
 cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
 
 ########## BUILDING ISO ###########
@@ -234,12 +237,12 @@ mkisofs -r -no-emul-boot -b "$(uname -r)/$(machine)/cdbr" -c boot.catalog -o \
 
 ####### CHECKING BUILD LOGS #######
 
-printf "Checking build logs for errors\n"
+printf '\n%s\n\n' "CHECKING BUILD LOGS FOR ERRORS"
 if  grep -rF '* Error ' $buildlog/buildlogs/; then
-    printf "Try deleting src xenocara src and ports and running script again.\n"
-    printf "CVS source code could be corrupt. Are paths set correctly?\n"
+    printf '%s\n\n' "Try deleting src xenocara src and ports and running script again."
+    printf '%s\n\n' "CVS source code could be corrupt. Are paths set correctly?"
 else
     v=$(sysctl -n kern.version); v=${v#* }; v=${v%% *}
-    printf "NO ERRORS FOUND IN BUILD LOGS\n"
-    printf "YOU ARE TRACKING %s\n" "$v"
+    printf '%s\n\n' "NO ERRORS FOUND IN BUILD LOGS"
+    printf "YOU ARE TRACKING %s\n\n" "$v"
 fi

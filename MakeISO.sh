@@ -239,7 +239,7 @@ mkisofs -r -no-emul-boot -b "$(uname -r)/$(machine)/cdbr" -c boot.catalog -o \
 
 printf '\n%s\n\n' "CHECKING BUILD LOGS FOR ERRORS"
 if  grep -rF '* Error ' $buildlog/buildlogs/; then
-    printf '%s\n\n' "Try deleting src xenocara src and ports and running script again."
+    printf '%s\n\n' "Try deleting src xenocara src and ports. Run script again."
     printf '%s\n\n' "CVS source code could be corrupt. Are paths set correctly?"
 else
     v=$(sysctl -n kern.version); v=${v#* }; v=${v%% *}

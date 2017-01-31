@@ -139,7 +139,7 @@ env DESTDIR=/ make distrib-dirs
 cd /usr/src || exit 1;
 make "-j${cores#*=}" build 2>&1 | tee $buildlog/buildlogs/logfile_2_system
 
-grep -rqF '* Error '$buildlog/buildlogs/logfile_2_system && exit 1;
+grep -rqF '* Error ' $buildlog/buildlogs/logfile_2_system && exit 1;
 
 ########## SYSTEM XORG ############
 

@@ -45,7 +45,7 @@
 ######################################################
 
 ## Be mindful of word splitting. If you change stuff
-## and are not sure use ""
+## and are not sure use "" There are no extra quotes
 
 # Full path to this script
 scriptpath=/root/MakeISO.sh
@@ -62,7 +62,7 @@ export NAME=CUSTOM.MP
 
 ###################################
 
-[ -f $scriptpath ] || { printf \
+[ -f "$scriptpath" ] || { printf \
            "Enter the correct name and path to this script\n"; exit 1; }
 [ "$(id -u)" = 0 ] || { printf "Must be root to run script\n"; exit 1; }
 
@@ -82,7 +82,7 @@ export PATH="$paths:/usr/local/bin:/usr/local/sbin"
 
 mkdir -p $buildlog/buildlogs
 
-if [ $NAME = CUSTOM.MP ]; then
+if [ "$NAME" = CUSTOM.MP ]; then
     if  df | grep -q tmpfs; then
         umount $buildlog/buildlogs
         umount /usr/obj
@@ -95,7 +95,7 @@ if [ $NAME = CUSTOM.MP ]; then
 
 ############# KERNEL ##############
 
-if [ ! -f $kernelcomp ]; then
+if [ ! -f "$kernelcomp" ]; then
     rm -f $buildlog/buildlogs/*
 
     cd /usr || exit 1;
@@ -164,8 +164,8 @@ grep -rqF '* Error ' $buildlog/buildlogs/logfile_3_xorg && exit 1;
 
 export DESTDIR=$store/dest
 export RELEASEDIR=$store/rel
-[ -d $DESTDIR ] && mv $DESTDIR $DESTDIR-
-[ -d $DESTDIR- ] && rm -rf $DESTDIR- &
+[ -d "$DESTDIR" ] && mv $DESTDIR $DESTDIR-
+[ -d "$DESTDIR-" ] && rm -rf $DESTDIR- &
 mkdir -p $DESTDIR $RELEASEDIR
 
 ######### XENOCARA SETS ###########

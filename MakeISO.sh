@@ -99,10 +99,10 @@ if [ ! -f "$kernelcomp" ]; then
     rm -f $buildlog/buildlogs/*
 
     cd /usr || exit 1;
-    if [ ! -d src ]; then
+    if [ ! -s src/CVS/Root ]; then
         cvs -d $cvsserver:/cvs checkout -r "$bsdver" -P src
     else
-        { cd src && cvs up -Pd; } || exit 1; 
+        { cd src && cvs -d $cvsserver:/cvs up -r "$bsdver" -Pd; } || exit 1;
     fi
     cd "/usr/src/sys/arch/$(machine)/conf" || exit 1;
     cp GENERIC.MP CUSTOM.MP 
@@ -147,10 +147,10 @@ grep -rqF '* Error ' $buildlog/buildlogs/logfile_2_system && exit 1;
 touch dot && mv -- * .old && rm -rf .old &   ### deletes .old in the background
 
 cd /usr || exit 1;
-if [ ! -d xenocara ]; then
+if [ ! -s xenocara/CVS/Root ]; then
     cvs -d $cvsserver:/cvs checkout -r "$bsdver" -P xenocara
 else
-    { cd /usr/xenocara && cvs up -Pd; } || exit 1;
+    { cd xenocara && cvs -d $cvsserver:/cvs up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/xenocara || exit 1;
 make bootstrap
@@ -218,10 +218,10 @@ cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
 ########## BUILDING ISO ###########
 
 cd /usr || exit 1;
-if [ ! -d ports ]; then
+if [ ! -s ports/CVS/Root ]; then
     cvs -d $cvsserver:/cvs checkout -r "${bsdver}" -P ports
 else
-    { cd ports && cvs up -Pd; } || exit 1;
+    { cd ports && cvs -d $cvsserver:/cvs up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/ports/sysutils/cdrtools || exit 1;
 

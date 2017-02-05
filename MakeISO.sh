@@ -48,7 +48,7 @@
 ## and are not sure use "" There are no extra quotes
 
 # Full path to this script
-scriptpath=/root/MakeISO.sh
+scriptpath=/root/MakeISO2.sh
 
 # Your cvs server of choice.
 cvsserver=anoncvs@anoncvs.eu.openbsd.org
@@ -67,7 +67,7 @@ export NAME=CUSTOM.MP
 [ "$(id -u)" = 0 ] || { printf 'Must be root to run script\n'; exit 1; }
 
 bsdver=OPENBSD_$(uname -r | tr . _)
-kernelcomp=$store/compileflag
+kernelcomp="$store/compileflag"
 cores=$(sysctl hw.ncpufound)
 ver=$(uname -r | tr -d .)
 buildlog=/var/log
@@ -80,15 +80,15 @@ export PATH="$paths:/usr/local/bin:/usr/local/sbin"
 # Be warned that data can be lost in case of a crash or
 # power outage. Using GENERIC is recommend since OBSD 6.0
 
-mkdir -p $buildlog/buildlogs
+mkdir -p "$buildlog/buildlogs"
 
 if [ "$NAME" = CUSTOM.MP ]; then
     if  df | grep -q tmpfs; then
-        umount $buildlog/buildlogs
+        umount "$buildlog/buildlogs"
         umount /usr/obj
         umount /usr/xobj
     fi
-    mount -t tmpfs tmpfs $buildlog/buildlogs 
+    mount -t tmpfs tmpfs "$buildlog/buildlogs" 
     mount -t tmpfs tmpfs /usr/obj
     mount -t tmpfs tmpfs /usr/xobj
     fi
@@ -96,37 +96,37 @@ if [ "$NAME" = CUSTOM.MP ]; then
 ############# KERNEL ##############
 
 if [ ! -f "$kernelcomp" ]; then
-    rm -f $buildlog/buildlogs/*
+    rm -f "$buildlog/buildlogs/*"
 
     cd /usr || exit 1;
     if [ ! -s src/CVS/Root ]; then
-        cvs -d $cvsserver:/cvs checkout -r "$bsdver" -P src
+        cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P src
     else
 	printf '\n%s\n\n' 'Looking for source updates. Can take a few minutes'
 	printf '%s\n' 'Repository in use' "$cvsserver"        
-	{ cd src && cvs -d $cvsserver:/cvs up -r "$bsdver" -Pd; } || exit 1;
+	{ cd src && cvs -d "$cvsserver:/cvs" up -r "$bsdver" -Pd; } || exit 1;
     fi
     cd "/usr/src/sys/arch/$(machine)/conf" || exit 1;
     cp GENERIC.MP CUSTOM.MP 
     if ! grep -q TMPFS CUSTOM.MP && [ -f CUSTOM.MP ]; then
         echo "option  TMPFS" >> CUSTOM.MP
     fi
-    config $NAME
+    config "$NAME"
     cd "/usr/src/sys/arch/$(machine)/compile/$NAME" || exit 1;
     make clean
-    make "-j${cores#*=}" 2>&1 | tee $buildlog/buildlogs/logfile_1_kernel
+    make "-j${cores#*=}" 2>&1 | tee "$buildlog/buildlogs/logfile_1_kernel"
     make install
-    touch $kernelcomp
-    echo $scriptpath > /etc/rc.firsttime
-    mv $buildlog/buildlogs/logfile_1_kernel $store/logfile_1_kernel
+    touch "$kernelcomp"
+    echo "$scriptpath" > /etc/rc.firsttime
+    mv "$buildlog/buildlogs/logfile_1_kernel" "$store/logfile_1_kernel"
     shutdown -r now
     sleep 30
 else
-    rm $kernelcomp
-    mv $store/logfile_1_kernel $buildlog/buildlogs/logfile_1_kernel
+    rm "$kernelcomp"
+    mv "$store/logfile_1_kernel $buildlog/buildlogs/logfile_1_kernel"
 fi
 
-grep -rqF '* Error ' $buildlog/buildlogs/logfile_1_kernel && exit 1;
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_1_kernel" && exit 1;
 
 ############ USERLAND #############
 
@@ -139,9 +139,9 @@ mkdir -p /usr/src
 cd /usr/src/etc || exit 1;
 env DESTDIR=/ make distrib-dirs
 cd /usr/src || exit 1;
-make "-j${cores#*=}" build 2>&1 | tee $buildlog/buildlogs/logfile_2_system
+make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_2_system"
 
-grep -rqF '* Error ' $buildlog/buildlogs/logfile_2_system && exit 1;
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_2_system" && exit 1;
 
 ########## SYSTEM XORG ############
 
@@ -150,54 +150,54 @@ touch dot && mv -- * .old && rm -rf .old &   ### deletes .old in the background
 
 cd /usr || exit 1;
 if [ ! -s xenocara/CVS/Root ]; then
-    cvs -d $cvsserver:/cvs checkout -r "$bsdver" -P xenocara
+    cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P xenocara
 else
     printf '\n%s\n\n' 'Looking for xeno source updates. Can take a few minutes'
     printf '%s\n' 'Repository in use' "$cvsserver"
-    { cd xenocara && cvs -d $cvsserver:/cvs up -r "$bsdver" -Pd; } || exit 1;
+    { cd xenocara && cvs -d "$cvsserver:/cvs" up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/xenocara || exit 1;
 make bootstrap
 make obj
 
-make "-j${cores#*=}" build 2>&1 | tee $buildlog/buildlogs/logfile_3_xorg
+make "-j${cores#*=}" build 2>&1 | tee "$buildlog/buildlogs/logfile_3_xorg"
 
-grep -rqF '* Error ' $buildlog/buildlogs/logfile_3_xorg && exit 1;
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_3_xorg" && exit 1;
 
 ######## CREATE WORK DIR ##########
 
-export DESTDIR=$store/dest
-export RELEASEDIR=$store/rel
-[ -d "$DESTDIR" ] && mv $DESTDIR $DESTDIR-
-[ -d "$DESTDIR-" ] && rm -rf $DESTDIR- &
-mkdir -p $DESTDIR $RELEASEDIR
+export DESTDIR="$store/dest"
+export RELEASEDIR="$store/rel"
+[ -d "$DESTDIR" ] && mv "$DESTDIR" "$DESTDIR-"
+[ -d "$DESTDIR-" ] && rm -rf "$DESTDIR-" &
+mkdir -p "$DESTDIR" "$RELEASEDIR"
 
 ######### XENOCARA SETS ###########
 
 cd /usr/xenocara || exit 1;
-make release 2>&1 | tee $buildlog/buildlogs/logfile_4_build_xeno_sets
-mv $RELEASEDIR/SHA256 $RELEASEDIR/SHA256_tmp || exit 1;
+make release 2>&1 | tee "$buildlog/buildlogs/logfile_4_build_xeno_sets"
+mv "$RELEASEDIR/SHA256" "$RELEASEDIR/SHA256_tmp" || exit 1;
 
-grep -rqF '* Error ' $buildlog/buildlogs/logfile_4_build_xeno_sets && exit 1; 
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_4_build_xeno_sets" && exit 1; 
 
 ########## SYSTEM SETS ############
 
 cd /usr/src/etc || exit 1;
-make release 2>&1 | tee $buildlog/buildlogs/logfile_5_build_sys_sets
+make release 2>&1 | tee "$buildlog/buildlogs/logfile_5_build_sys_sets"
 cd /usr/src/distrib/sets || exit 1;
 sh checkflist
-cat $RELEASEDIR/SHA256_tmp >> $RELEASEDIR/SHA256
-rm -f $RELEASEDIR/SHA256_tmp
+cat "$RELEASEDIR/SHA256_tmp" >> "$RELEASEDIR/SHA256"
+rm -f "$RELEASEDIR/SHA256_tmp"
 
-grep -rqF '* Error ' $buildlog/buildlogs/logfile_5_build_sys_sets && exit 1;
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_5_build_sys_sets" && exit 1;
 
 ###### MAKE RELEASE STRUCTURE #####
 
 cd "$store" || exit 1;
 [ -d OpenBSD ] && mv OpenBSD OpenBSD-
 [ -d OpenBSD- ] && rm -rf OpenBSD- & ### Delete old dir in background
-mkdir $store/OpenBSD
-mv $RELEASEDIR "$(machine)"
+mkdir "$store/OpenBSD"
+mv "$RELEASEDIR" "$(machine)"
 mkdir "$(uname -r)"
 mv "$(machine)" "$(uname -r)/"
 mv "$(uname -r)" OpenBSD/ || exit 1;
@@ -223,11 +223,11 @@ cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
 
 cd /usr || exit 1;
 if [ ! -s ports/CVS/Root ]; then
-    cvs -d $cvsserver:/cvs checkout -r "${bsdver}" -P ports
+    cvs -d "$cvsserver:/cvs" checkout -r "${bsdver}" -P ports
 else
     printf '\n%s\n\n' 'Looking for port source updates. Can take a few minutes'
     printf '%s\n' 'Repository in use' "$cvsserver"
-    { cd ports && cvs -d $cvsserver:/cvs up -r "$bsdver" -Pd; } || exit 1;
+    { cd ports && cvs -d "$cvsserver:/cvs" up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/ports/sysutils/cdrtools || exit 1;
 

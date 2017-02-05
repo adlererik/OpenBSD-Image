@@ -63,8 +63,8 @@ export NAME=CUSTOM.MP
 ###################################
 
 [ -f "$scriptpath" ] || { printf \
-           "Enter the correct name and path to this script\n"; exit 1; }
-[ "$(id -u)" = 0 ] || { printf "Must be root to run script\n"; exit 1; }
+           'Enter the correct name and path to this script\n'; exit 1; }
+[ "$(id -u)" = 0 ] || { printf 'Must be root to run script\n'; exit 1; }
 
 bsdver=OPENBSD_$(uname -r | tr . _)
 kernelcomp=$store/compileflag
@@ -202,10 +202,10 @@ mv "$(uname -r)" OpenBSD/ || exit 1;
 
 cd "$store/OpenBSD/$(uname -r)/$(machine)" || exit 1;
 if [ ! -f /etc/signify/stable-base.sec ]; then
-    printf "Generate a private key\n"
+    printf 'Generate a private key\n'
     signify -G -p /etc/signify/stable-base.pub -s /etc/signify/stable-base.sec
 else
-    printf "Using your old private key\n"
+    printf 'Using your old private key\n'
 fi    
 signify -S -s /etc/signify/stable-base.sec -m SHA256 -e -x SHA256.sig
 
@@ -227,7 +227,7 @@ cd /usr/ports/sysutils/cdrtools || exit 1;
 
 if /usr/ports/infrastructure/bin/out-of-date | grep -q sysutils/cdrtools; then
     make update
-    printf "found update for cdrtools\n"
+    printf 'Found update for cdrtools\n'
 else
     make install
 fi
@@ -237,12 +237,12 @@ mkisofs -r -no-emul-boot -b "$(uname -r)/$(machine)/cdbr" -c boot.catalog -o \
 
 ####### CHECKING BUILD LOGS #######
 
-printf '\n%s\n\n' "CHECKING BUILD LOGS FOR ERRORS"
+printf '\n%s\n\n' 'CHECKING BUILD LOGS FOR ERRORS'
 if  grep -rF '* Error ' $buildlog/buildlogs/; then
-    printf '%s\n\n' "Try deleting src xenocara src and ports. Run script again."
-    printf '%s\n\n' "CVS source code could be corrupt. Are paths set correctly?"
+    printf '%s\n\n' 'Try deleting src xenocara src and ports. Run script again.'
+    printf '%s\n\n' 'CVS source code could be corrupt. Are paths set correctly?'
 else
     v=$(sysctl -n kern.version); v=${v#* }; v=${v%% *}
-    printf '%s\n\n' "NO ERRORS FOUND IN BUILD LOGS"
-    printf "YOU ARE TRACKING %s\n\n" "$v"
+    printf '%s\n\n' 'NO ERRORS FOUND IN BUILD LOGS'
+    printf 'YOU ARE TRACKING %s\n\n' "$v"
 fi

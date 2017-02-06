@@ -48,7 +48,7 @@
 ## and are not sure use "" There are no extra quotes
 
 # Full path to this script
-scriptpath=/root/MakeISO2.sh
+scriptpath=/root/MakeISO.sh
 
 # Your cvs server of choice.
 cvsserver=anoncvs@anoncvs.eu.openbsd.org
@@ -104,7 +104,7 @@ if [ ! -f "$kernelcomp" ]; then
     else
 	printf '\n%s\n\n' 'Looking for source updates. Can take a few minutes'
 	printf '%s\n' 'Repository in use' "$cvsserver"        
-	{ cd src && cvs -d "$cvsserver:/cvs" up -r "$bsdver" -Pd; } || exit 1;
+	{ cd src && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
     fi
     cd "/usr/src/sys/arch/$(machine)/conf" || exit 1;
     cp GENERIC.MP CUSTOM.MP 
@@ -154,7 +154,7 @@ if [ ! -s xenocara/CVS/Root ]; then
 else
     printf '\n%s\n\n' 'Looking for xeno source updates. Can take a few minutes'
     printf '%s\n' 'Repository in use' "$cvsserver"
-    { cd xenocara && cvs -d "$cvsserver:/cvs" up -r "$bsdver" -Pd; } || exit 1;
+    { cd xenocara && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/xenocara || exit 1;
 make bootstrap
@@ -227,7 +227,7 @@ if [ ! -s ports/CVS/Root ]; then
 else
     printf '\n%s\n\n' 'Looking for port source updates. Can take a few minutes'
     printf '%s\n' 'Repository in use' "$cvsserver"
-    { cd ports && cvs -d "$cvsserver:/cvs" up -r "$bsdver" -Pd; } || exit 1;
+    { cd ports && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/ports/sysutils/cdrtools || exit 1;
 

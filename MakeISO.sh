@@ -103,7 +103,7 @@ if [ ! -f "$kernelcomp" ]; then
         cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P src
     else
 	printf '\n%s\n\n' 'Looking for source updates. Can take a few minutes'
-	printf '%s\n' 'Repository in use' "$cvsserver"        
+        printf 'Repository in use:\n%s\n\n' "$cvsserver"        
 	{ cd src && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
     fi
     cd "/usr/src/sys/arch/$(machine)/conf" || exit 1;
@@ -153,7 +153,7 @@ if [ ! -s xenocara/CVS/Root ]; then
     cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P xenocara
 else
     printf '\n%s\n\n' 'Looking for xeno source updates. Can take a few minutes'
-    printf '%s\n' 'Repository in use' "$cvsserver"
+    printf 'Repository in use:\n%s\n\n' "$cvsserver"
     { cd xenocara && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/xenocara || exit 1;
@@ -226,7 +226,7 @@ if [ ! -s ports/CVS/Root ]; then
     cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P ports
 else
     printf '\n%s\n\n' 'Looking for port source updates. Can take a few minutes'
-    printf '%s\n' 'Repository in use' "$cvsserver"
+    printf 'Repository in use:\n%s\n\n' "$cvsserver"
     { cd ports && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/ports/sysutils/cdrtools || exit 1;

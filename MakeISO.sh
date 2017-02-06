@@ -123,7 +123,7 @@ if [ ! -f "$kernelcomp" ]; then
     sleep 30
 else
     rm "$kernelcomp"
-    mv "$store/logfile_1_kernel $buildlog/buildlogs/logfile_1_kernel"
+    mv "$store/logfile_1_kernel" "$buildlog/buildlogs/logfile_1_kernel"
 fi
 
 grep -rqF '* Error ' "$buildlog/buildlogs/logfile_1_kernel" && exit 1;
@@ -233,7 +233,7 @@ cd /usr/ports/sysutils/cdrtools || exit 1;
 
 if /usr/ports/infrastructure/bin/out-of-date | grep -q sysutils/cdrtools; then
     make update
-    printf 'Found update for cdrtools\n'
+    printf '\n%s\n\n' 'Found update for cdrtools'
 else
     make install
 fi

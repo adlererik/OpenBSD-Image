@@ -2,7 +2,7 @@
 
 
 
-###           POSIX version without QEFS           ###  
+###            POSIX version with QEFS             ###  
 ###                                                ###
 ######################################################
 ###### BUILDS A FULL RELEASE IMAGE FOR OPENBSD #######
@@ -66,10 +66,10 @@ export NAME=CUSTOM.MP
            'Enter the correct name and path to this script\n'; exit 1; }
 [ "$(id -u)" = 0 ] || { printf 'Must be root to run script\n'; exit 1; }
 
-bsdver=OPENBSD_$(uname -r | tr . _)
+bsdver="OPENBSD_$(uname -r | tr . _)"
 kernelcomp="$store/compileflag"
-cores=$(sysctl hw.ncpufound)
-ver=$(uname -r | tr -d .)
+cores="$(sysctl hw.ncpufound)"
+ver="$(uname -r | tr -d .)"
 buildlog=/var/log
 
 paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"

@@ -206,10 +206,10 @@ mv "$(uname -r)" OpenBSD/ || exit 1;
 
 cd "$store/OpenBSD/$(uname -r)/$(machine)" || exit 1;
 if [ ! -f /etc/signify/stable-base.sec ]; then
-    printf 'Generate a private key\n'
+    printf '\n%s\n\n' 'Generate a private key'
     signify -G -p /etc/signify/stable-base.pub -s /etc/signify/stable-base.sec
 else
-    printf 'Using your old private key\n'
+    printf '\n%s\n\n' 'Using your old private key'
 fi    
 signify -S -s /etc/signify/stable-base.sec -m SHA256 -e -x SHA256.sig
 
@@ -223,7 +223,7 @@ cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
 
 cd /usr || exit 1;
 if [ ! -s ports/CVS/Root ]; then
-    cvs -d "$cvsserver:/cvs" checkout -r "${bsdver}" -P ports
+    cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P ports
 else
     printf '\n%s\n\n' 'Looking for port source updates. Can take a few minutes'
     printf '%s\n' 'Repository in use' "$cvsserver"
@@ -237,9 +237,9 @@ if /usr/ports/infrastructure/bin/out-of-date | grep -q sysutils/cdrtools; then
 else
     make install
 fi
-cd $store || exit 1;
+cd "$store" || exit 1;
 mkisofs -r -no-emul-boot -b "$(uname -r)/$(machine)/cdbr" -c boot.catalog -o \
-    "install${ver}.iso" $store/OpenBSD
+    "install${ver}.iso" "$store/OpenBSD"
 
 ####### CHECKING BUILD LOGS #######
 

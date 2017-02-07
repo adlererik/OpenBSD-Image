@@ -44,8 +44,6 @@
 # loongson luna88k macppc octeon sgi socppc sparc64  #
 ######################################################
 
-## Be mindful of word splitting. If you change stuff
-## and are not sure use "" There are no extra quotes
 
 # Full path to this script
 scriptpath=/root/MakeISO.sh
@@ -53,7 +51,7 @@ scriptpath=/root/MakeISO.sh
 # Your cvs server of choice.
 cvsserver=anoncvs@anoncvs.eu.openbsd.org
 
-# This is where builds end up. Need space here.
+# This is where build ends up. Your home dir is ok.
 store=/root 
 
 # using custom will enable tempfs in kernel
@@ -70,6 +68,7 @@ bsdver="OPENBSD_$(uname -r | tr . _)"
 kernelcomp="$store/compileflag"
 cores="$(sysctl hw.ncpufound)"
 ver="$(uname -r | tr -d .)"
+finger="$(ssh-keygen -E MD5 -l -F ${cvsserver#*@} |grep MD5)"
 buildlog=/var/log
 
 paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
@@ -80,6 +79,7 @@ export PATH="$paths:/usr/local/bin:/usr/local/sbin"
 # Be warned that data can be lost in case of a crash or
 # power outage. Using GENERIC is recommend since OBSD 6.0
 
+mkdir -p "$store"
 mkdir -p "$buildlog/buildlogs"
 
 if [ "$NAME" = CUSTOM.MP ]; then
@@ -102,8 +102,8 @@ if [ ! -f "$kernelcomp" ]; then
     if [ ! -s src/CVS/Root ]; then
         cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P src
     else
-	printf '\n%s\n\n' 'Looking for source updates. Can take a few minutes'
-        printf 'Repository in use:\n%s\n\n' "$cvsserver"        
+	printf '\n%s\n\n' 'Looking for src code changes. Will take a few minutes'
+        printf 'Repository in use:\n%s\n\n' "$finger"
 	{ cd src && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
     fi
     cd "/usr/src/sys/arch/$(machine)/conf" || exit 1;
@@ -152,8 +152,8 @@ cd /usr || exit 1;
 if [ ! -s xenocara/CVS/Root ]; then
     cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P xenocara
 else
-    printf '\n%s\n\n' 'Looking for xeno source updates. Can take a few minutes'
-    printf 'Repository in use:\n%s\n\n' "$cvsserver"
+    printf '\n%s\n\n' 'Looking for xeno source changes. Will take a few minutes'
+    printf 'Repository in use:\n%s\n\n' "$finger"
     { cd xenocara && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/xenocara || exit 1;
@@ -225,8 +225,8 @@ cd /usr || exit 1;
 if [ ! -s ports/CVS/Root ]; then
     cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P ports
 else
-    printf '\n%s\n\n' 'Looking for port source updates. Can take a few minutes'
-    printf 'Repository in use:\n%s\n\n' "$cvsserver"
+    printf '\n%s\n\n' 'Looking for port source changes. Will take a few minutes'
+    printf 'Repository in use:\n%s\n\n' "$finger"
     { cd ports && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/ports/sysutils/cdrtools || exit 1;

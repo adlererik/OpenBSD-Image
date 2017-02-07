@@ -64,12 +64,13 @@ export NAME=CUSTOM.MP
            'Enter the correct name and path to this script\n'; exit 1; }
 [ "$(id -u)" = 0 ] || { printf 'Must be root to run script\n'; exit 1; }
 
+buildlog=/var/log
 bsdver="OPENBSD_$(uname -r | tr . _)"
 kernelcomp="$store/compileflag"
 cores="$(sysctl hw.ncpufound)"
 ver="$(uname -r | tr -d .)"
-finger="$(ssh-keygen -E MD5 -l -F ${cvsserver#*@} |grep MD5)"
-buildlog=/var/log
+finger="$(ssh-keygen -E MD5 -l -F "${cvsserver#*@}" \
+               |grep MD5 || echo 'BEING ANALYZED')"
 
 paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
 export PATH="$paths:/usr/local/bin:/usr/local/sbin"
@@ -100,11 +101,15 @@ if [ ! -f "$kernelcomp" ]; then
 
     cd /usr || exit 1;
     if [ ! -s src/CVS/Root ]; then
-        cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P src
+        clear && printf '\nRepository in use:\n%s\n\n' "$finger"
+        printf '%s\n' 'Fingerprints listed: https://www.openbsd.org/anoncvs.html'
+        printf '%s\n\n' 'Populating local src code tree. Will take some time'
+        cvs -qd "$cvsserver:/cvs" checkout -r "$bsdver" -P src
     else
-	printf '\n%s\n\n' 'Looking for src code changes. Will take a few minutes'
-        printf 'Repository in use:\n%s\n\n' "$finger"
-	{ cd src && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
+        clear && printf '\nRepository in use:\n%s\n\n' "$finger"
+        printf '%s\n' 'Fingerprints listed: https://www.openbsd.org/anoncvs.html'
+        printf '\n%s\n\n' 'Looking for src changes (cvs up). Will take some time'
+        { cd src && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
     fi
     cd "/usr/src/sys/arch/$(machine)/conf" || exit 1;
     cp GENERIC.MP CUSTOM.MP 
@@ -150,10 +155,14 @@ touch dot && mv -- * .old && rm -rf .old &   ### deletes .old in the background
 
 cd /usr || exit 1;
 if [ ! -s xenocara/CVS/Root ]; then
+    printf '\nRepository in use:\n%s\n\n' "$finger"
+    printf '%s\n' 'Fingerprints listed: https://www.openbsd.org/anoncvs.html'
+    printf '%s\n\n' 'Populating local xeno code tree. Will take some time'
     cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P xenocara
 else
-    printf '\n%s\n\n' 'Looking for xeno source changes. Will take a few minutes'
-    printf 'Repository in use:\n%s\n\n' "$finger"
+    printf '\nRepository in use:\n%s\n\n' "$finger"
+    printf '%s\n' 'Fingerprints listed: https://www.openbsd.org/anoncvs.html'
+    printf '\n%s\n\n' 'Looking for xeno changes (cvs up). Will take some time'    
     { cd xenocara && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/xenocara || exit 1;
@@ -223,10 +232,14 @@ cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
 
 cd /usr || exit 1;
 if [ ! -s ports/CVS/Root ]; then
+    printf '\nRepository in use:\n%s\n\n' "$finger"
+    printf '%s\n' 'Fingerprints listed: https://www.openbsd.org/anoncvs.html'
+    printf '%s\n\n' 'Populating local port code tree. Will take some time'
     cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P ports
 else
-    printf '\n%s\n\n' 'Looking for port source changes. Will take a few minutes'
-    printf 'Repository in use:\n%s\n\n' "$finger"
+    printf '\nRepository in use:\n%s\n\n' "$finger"
+    printf '%s\n' 'Fingerprints listed: https://www.openbsd.org/anoncvs.html'
+    printf '\n%s\n\n' 'Looking for ports changes (cvs up). Will take some time'
     { cd ports && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
 fi
 cd /usr/ports/sysutils/cdrtools || exit 1;

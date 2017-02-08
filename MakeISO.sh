@@ -51,12 +51,13 @@ scriptpath=/root/MakeISO.sh
 # Your cvs server of choice.
 cvsserver=anoncvs@anoncvs.eu.openbsd.org
 
-# This is where build ends up. Your home dir is ok.
+# This is where build ends up
+# You can use the path to your home dir 
 store=/root 
 
 # using custom will enable tempfs in kernel
-# export NAME=GENERIC.MP
-export NAME=CUSTOM.MP
+export NAME=GENERIC.MP
+# export NAME=CUSTOM.MP
 
 ###################################
 
@@ -75,13 +76,13 @@ finger="$(ssh-keygen -E MD5 -l -F "${cvsserver#*@}" \
 paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
 export PATH="$paths:/usr/local/bin:/usr/local/sbin"
 
+mkdir -p "$store"
+mkdir -p "$buildlog/buildlogs"
+
 # Setting NAME to CUSTOM.MP above will enable temfs RAM. This will
 # speed up the compile time by mitigating ufs slow IOs.
 # Be warned that data can be lost in case of a crash or
 # power outage. Using GENERIC is recommend since OBSD 6.0
-
-mkdir -p "$store"
-mkdir -p "$buildlog/buildlogs"
 
 if [ "$NAME" = CUSTOM.MP ]; then
     if  df | grep -q tmpfs; then

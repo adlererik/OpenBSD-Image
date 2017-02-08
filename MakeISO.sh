@@ -231,8 +231,9 @@ else
     make install
 fi
 cd "$store" || exit 1;
+
 mkisofs -r -no-emul-boot -b "$(uname -r)/$(machine)/cdbr" -c boot.catalog -o \
-    "install${ver}.iso" "$store/OpenBSD/$(uname -r)/$(machine)"
+  "$store/OpenBSD/$(uname -r)/$(machine)/install${ver}.iso" "$store/OpenBSD"
 
 ####### SIGNING CHECKSUMS #########
 
@@ -250,7 +251,7 @@ for f in *; do ### avoids using ls -l
     [ -e "$f" ] || continue; echo "$f" >> index.txt
 done
 
-cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
+cp /etc/signify/stable-base.pub "$store/OpenBSD/"
 
 
 ####### CHECKING BUILD LOGS #######

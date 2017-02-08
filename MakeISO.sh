@@ -46,7 +46,7 @@
 
 
 # Full path to this script. 
-# Auto detection is not a bad idea.
+# Auto detection is a bad idea.
 scriptpath=/root/MakeISO.sh
 
 # Your cvs server of choice.

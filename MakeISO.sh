@@ -45,7 +45,8 @@
 ######################################################
 
 
-# Full path to this script
+# Full path to this script. 
+# Auto detection is not a bad idea.
 scriptpath=/root/MakeISO.sh
 
 # Your cvs server of choice.
@@ -182,24 +183,19 @@ export RELEASEDIR="$store/rel"
 [ -d "$DESTDIR-" ] && rm -rf "$DESTDIR-" &
 mkdir -p "$DESTDIR" "$RELEASEDIR"
 
-######### XENOCARA SETS ###########
-
-cd /usr/xenocara || exit 1;
-make release 2>&1 | tee "$buildlog/buildlogs/logfile_4_build_xeno_sets"
-mv "$RELEASEDIR/SHA256" "$RELEASEDIR/SHA256_tmp" || exit 1;
-
-grep -rqF '* Error ' "$buildlog/buildlogs/logfile_4_build_xeno_sets" && exit 1; 
-
 ########## SYSTEM SETS ############
 
 cd /usr/src/etc || exit 1;
-make release 2>&1 | tee "$buildlog/buildlogs/logfile_5_build_sys_sets"
-cd /usr/src/distrib/sets || exit 1;
-sh checkflist
-cat "$RELEASEDIR/SHA256_tmp" >> "$RELEASEDIR/SHA256"
-rm -f "$RELEASEDIR/SHA256_tmp"
+make release 2>&1 | tee "$buildlog/buildlogs/logfile_4_build_sys_sets"
 
-grep -rqF '* Error ' "$buildlog/buildlogs/logfile_5_build_sys_sets" && exit 1;
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_4_build_sys_sets" && exit 1;
+
+######### XENOCARA SETS ###########
+
+cd /usr/xenocara || exit 1;
+make release 2>&1 | tee "$buildlog/buildlogs/logfile_5_build_xeno_sets"
+
+grep -rqF '* Error ' "$buildlog/buildlogs/logfile_5_build_xeno_sets" && exit 1;
 
 ###### MAKE RELEASE STRUCTURE #####
 
@@ -211,23 +207,6 @@ mv "$RELEASEDIR" "$(machine)"
 mkdir "$(uname -r)"
 mv "$(machine)" "$(uname -r)/"
 mv "$(uname -r)" OpenBSD/ || exit 1;
-
-####### SIGNING CHECKSUMS #########
-
-cd "$store/OpenBSD/$(uname -r)/$(machine)" || exit 1;
-if [ ! -f /etc/signify/stable-base.sec ]; then
-    printf '\n%s\n\n' 'Generate a private key'
-    signify -G -p /etc/signify/stable-base.pub -s /etc/signify/stable-base.sec
-else
-    printf '\n%s\n\n' 'Using your old private key'
-fi    
-signify -S -s /etc/signify/stable-base.sec -m SHA256 -e -x SHA256.sig
-
-for f in *; do ### avoids using ls -l 
-    [ -e "$f" ] || continue; echo "$f" >> index.txt
-done
-
-cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
 
 ########## BUILDING ISO ###########
 
@@ -253,7 +232,26 @@ else
 fi
 cd "$store" || exit 1;
 mkisofs -r -no-emul-boot -b "$(uname -r)/$(machine)/cdbr" -c boot.catalog -o \
-    "install${ver}.iso" "$store/OpenBSD"
+    "install${ver}.iso" "$store/OpenBSD/$(uname -r)/$(machine)"
+
+####### SIGNING CHECKSUMS #########
+
+cd "$store/OpenBSD/$(uname -r)/$(machine)" || exit 1;
+sha256 -- * > SHA256
+if [ ! -f /etc/signify/stable-base.sec ]; then
+    printf '\n%s\n\n' 'Generate a private key'
+    signify -G -p /etc/signify/stable-base.pub -s /etc/signify/stable-base.sec
+else
+    printf '\n%s\n\n' 'Using your old private key'
+fi
+signify -S -s /etc/signify/stable-base.sec -m SHA256 -e -x SHA256.sig
+
+for f in *; do ### avoids using ls -l 
+    [ -e "$f" ] || continue; echo "$f" >> index.txt
+done
+
+cp /etc/signify/stable-base.pub "$store/OpenBSD/$(uname -r)/"
+
 
 ####### CHECKING BUILD LOGS #######
 

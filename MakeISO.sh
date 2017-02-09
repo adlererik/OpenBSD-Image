@@ -247,7 +247,7 @@ for f in *; do ### avoids using ls -l
     [ -e "$f" ] || continue; echo "$f" >> index.txt
 done
 
-cp /etc/signify/stable-base.pub "$store/OpenBSD/"
+cp /etc/signify/stable-base.pub "$store/"
 
 ####### CHECKING BUILD LOGS #######
 

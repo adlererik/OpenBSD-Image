@@ -249,7 +249,6 @@ done
 
 cp /etc/signify/stable-base.pub "$store/OpenBSD/"
 
-
 ####### CHECKING BUILD LOGS #######
 
 printf '\n%s\n\n' 'CHECKING BUILD LOGS FOR ERRORS'

@@ -52,6 +52,9 @@ cvsserver=anoncvs@anoncvs.eu.openbsd.org
 # You can use the path to your home dir
 store=/root
 
+# Your name or nice used for the singing
+myname='erik adler'
+
 # using custom will enable tempfs in kernel
 export NAME=GENERIC.MP
 # export NAME=CUSTOM.MP
@@ -237,18 +240,20 @@ cd "$store/OpenBSD/$(uname -r)/$(machine)" || exit 1;
 [ ! -f SHA256 ] || rm SHA256
 sha256 -- * > SHA256
 if [ ! -f /etc/signify/stable-base.sec ]; then
-    printf '\n%s\n\n' 'Generate a private key'
-    signify -G -p /etc/signify/stable-base.pub -s /etc/signify/stable-base.sec
+   key="my-openbsd-$(uname -r)-base"
+   printf '\n%s\n\n' 'Generate a private key. Do not forget your password'
+   signify -G -c "$myname openbsd $(uname -r) base" -p "/etc/signify/$key.pub" \
+                                                    -s "/etc/signify/$key.sec"
 else
     printf '\n%s\n\n' 'Using your old private key'
 fi
-signify -S -s /etc/signify/stable-base.sec -m SHA256 -e -x SHA256.sig
+signify -S -s "/etc/signify/$key.sec" -m SHA256 -e -x SHA256.sig
 
 for f in *; do ### avoids using ls -l
     [ -e "$f" ] || continue; echo "$f" >> index.txt
 done
 
-cp /etc/signify/stable-base.pub "$store/OpenBSD/"
+cp "/etc/signify/$key.pub" "$store/OpenBSD/"
 
 ####### CHECKING BUILD LOGS #######
 

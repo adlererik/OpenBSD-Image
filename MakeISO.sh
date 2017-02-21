@@ -52,7 +52,8 @@ cvsserver=anoncvs@anoncvs.eu.openbsd.org
 # You can use the path to your home dir
 store=/root
 
-# Your name or nice used for the singing
+# Your name or nick used for the signing
+# generated signify keys.
 myname='erik adler'
 
 # using custom will enable tempfs in kernel

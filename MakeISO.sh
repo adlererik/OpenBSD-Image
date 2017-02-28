@@ -127,7 +127,7 @@ if [ ! -f "$kernelcomp" ]; then
     echo "$scriptpath" > /etc/rc.firsttime
     mv "$buildlog/buildlogs/logfile_1_kernel" "$store/logfile_1_kernel"
     shutdown -r now
-    sleep 30
+    exit
 else
     rm "$kernelcomp"
     mv "$store/logfile_1_kernel" "$buildlog/buildlogs/logfile_1_kernel"

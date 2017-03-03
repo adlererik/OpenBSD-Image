@@ -102,8 +102,8 @@ if  df | grep -q mfs; then
     umount /usr/xobj
 fi
 mount_mfs -s 300M "$swapm" "$buildlog/buildlogs"
-mount_mfs -s 2G "$swapm" /usr/obj
-mount_mfs -s 2G "$swapm" /usr/xobj
+mount_mfs -s 1500M "$swapm" /usr/obj
+mount_mfs -s 1500M "$swapm" /usr/xobj
 
 ############# KERNEL ##############
 

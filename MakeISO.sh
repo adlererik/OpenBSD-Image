@@ -43,22 +43,30 @@
 
 # Full path to this script.
 # Auto detection is a bad idea.
-scriptpath=/root/MakeISO.sh
+scriptpath=/home/erik/MakeISO.sh
 
 # Your cvs server of choice.
 cvsserver=anoncvs@anoncvs.eu.openbsd.org
 
+# Your pkg server of choice.
+pkgserver=https://ftp.eu.openbsd.org/pub/OpenBSD
+
 # This is where build ends up
 # You can use the path to your home dir
-store=/root
+store=/home/erik
 
 # Your name or nick used for the signing
 # generated signify keys.
 myname='erik adler'
 
-# using custom will enable tempfs in kernel
+# If you want to compile from ports change
+# pkg to 'ports' here.
+pkgsort='pkg'
+
+# if a custom kernel should be used.
 export NAME=GENERIC.MP
-# export NAME=CUSTOM.MP
+
+
 
 ###################################
 
@@ -71,6 +79,8 @@ bsdver="OPENBSD_$(uname -r | tr . _)"
 kernelcomp="$store/compileflag"
 cores="$(sysctl hw.ncpufound)"
 ver="$(uname -r | tr -d .)"
+swapm="$(grep -i swap /etc/fstab)"; swapm="${swapm%% *}"
+key="my-openbsd-$(uname -r)-base"
 finger="$(ssh-keygen -E MD5 -l -F "${cvsserver#*@}" \
                |grep MD5 || echo 'BEING ANALYZED')"
 
@@ -80,21 +90,19 @@ export PATH="$paths:/usr/local/bin:/usr/local/sbin"
 mkdir -p "$store"
 mkdir -p "$buildlog/buildlogs"
 
-# Setting NAME to CUSTOM.MP above will enable temfs RAM. This will
+# Setting the below will enable mfs RAM. This will
 # speed up the compile time by mitigating ufs slow IOs.
 # Be warned that data can be lost in case of a crash or
-# power outage. Using GENERIC is recommend since OBSD 6.0
+# power outage.
 
-if [ "$NAME" = CUSTOM.MP ]; then
-    if  df | grep -q tmpfs; then
-        umount "$buildlog/buildlogs"
-        umount /usr/obj
-        umount /usr/xobj
-    fi
-    mount -t tmpfs tmpfs "$buildlog/buildlogs"
-    mount -t tmpfs tmpfs /usr/obj
-    mount -t tmpfs tmpfs /usr/xobj
-    fi
+if  df | grep -q mfs; then
+    umount "$buildlog/buildlogs"
+    umount /usr/obj
+    umount /usr/xobj
+fi
+mount_mfs -s 300M "$swapm" "$buildlog/buildlogs"
+mount_mfs -s 2G "$swapm" /usr/obj
+mount_mfs -s 2G "$swapm" /usr/xobj
 
 ############# KERNEL ##############
 
@@ -106,6 +114,7 @@ if [ ! -f "$kernelcomp" ]; then
         clear && printf '\nRepository in use:\n%s\n\n' "$finger"
         printf '%s\n' 'Fingerprints listed: https://www.openbsd.org/anoncvs.html'
         printf '%s\n\n' 'Populating local src code tree. Will take some time'
+	sleep 10
         cvs -qd "$cvsserver:/cvs" checkout -r "$bsdver" -P src
     else
         clear && printf '\nRepository in use:\n%s\n\n' "$finger"
@@ -114,10 +123,6 @@ if [ ! -f "$kernelcomp" ]; then
         { cd src && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
     fi
     cd "/usr/src/sys/arch/$(machine)/conf" || exit 1;
-    cp GENERIC.MP CUSTOM.MP
-    if ! grep -q TMPFS CUSTOM.MP && [ -f CUSTOM.MP ]; then
-        echo "option  TMPFS" >> CUSTOM.MP
-    fi
     config "$NAME"
     cd "/usr/src/sys/arch/$(machine)/compile/$NAME" || exit 1;
     make clean
@@ -210,26 +215,40 @@ mv "$(uname -r)" OpenBSD/ || exit 1;
 
 ########## BUILDING ISO ###########
 
-cd /usr || exit 1;
-if [ ! -s ports/CVS/Root ]; then
-    printf '\nRepository in use:\n%s\n\n' "$finger"
-    printf '%s\n' 'Fingerprints listed: https://www.openbsd.org/anoncvs.html'
-    printf '%s\n\n' 'Populating local port code tree. Will take some time'
-    cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P ports
-else
-    printf '\nRepository in use:\n%s\n\n' "$finger"
-    printf '%s\n' 'Fingerprints listed: https://www.openbsd.org/anoncvs.html'
-    printf '\n%s\n\n' 'Looking for ports changes (cvs up). Will take some time'
-    { cd ports && cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd; } || exit 1;
-fi
-cd /usr/ports/sysutils/cdrtools || exit 1;
+if [ "$pkgsort" = ports ]; then
+    cd /usr || exit 1;
 
-if /usr/ports/infrastructure/bin/out-of-date | grep -q sysutils/cdrtools; then
-    make update
-    printf '\n%s\n\n' 'Found update for cdrtools'
+    if [ ! -s ports/CVS/Root ]; then
+        printf '\nRepository in use:\n%s\n\n' "$finger"
+        printf '%s\n' 'Fingerprints listed: https://www.openbsd.org/anoncvs.html'
+        printf '%s\n\n' 'Populating local port code tree. Will take some time'
+        cvs -d "$cvsserver:/cvs" checkout -r "$bsdver" -P ports
+    else
+        printf '\nRepository in use:\n%s\n\n' "$finger"
+        printf '%s\n' 'Fingerprints listed: https://www.openbsd.org/anoncvs.html'
+        printf '\n%s\n\n' 'Looking for ports changes (cvs up). Will take some time'
+        cd ports || exit 1;
+        cvs -d "$cvsserver:/cvs" -q up -r "$bsdver" -Pd
+    fi
+
+    cd /usr/ports/sysutils/cdrtools || exit 1;
+
+    if /usr/ports/infrastructure/bin/out-of-date | grep -q sysutils/cdrtools; then
+        make update
+        printf '\n%s\n\n' 'Found update for cdrtools'
+    else
+        make install
+    fi
+
 else
-    make install
+    export PKG_PATH="$pkgserver/$(uname -r)/packages/$(machine)"
+    if ! pkg_info -Q crdtools | grep -q installed; then
+    pkg_add cdrtools
+    fi
 fi
+
+####################################
+
 cd "$store" || exit 1;
 
 mkisofs -r -no-emul-boot -b "$(uname -r)/$(machine)/cdbr" -c boot.catalog -o \
@@ -240,8 +259,7 @@ mkisofs -r -no-emul-boot -b "$(uname -r)/$(machine)/cdbr" -c boot.catalog -o \
 cd "$store/OpenBSD/$(uname -r)/$(machine)" || exit 1;
 [ ! -f SHA256 ] || rm SHA256
 sha256 -- * > SHA256
-if [ ! -f /etc/signify/stable-base.sec ]; then
-   key="my-openbsd-$(uname -r)-base"
+if [ ! -f "/etc/signify/$key.sec" ]; then
    printf '\n%s\n\n' 'Generate a private key. Do not forget your password'
    signify -G -c "$myname openbsd $(uname -r) base" -p "/etc/signify/$key.pub" \
                                                     -s "/etc/signify/$key.sec"

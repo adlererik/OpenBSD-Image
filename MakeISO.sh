@@ -86,6 +86,7 @@ finger="$(ssh-keygen -E MD5 -l -F "${cvsserver#*@}" \
 
 paths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11R6/bin"
 export PATH="$paths:/usr/local/bin:/usr/local/sbin"
+export PKG_PATH # prevent conditionals, set -e and traps from working
 
 mkdir -p "$store"
 mkdir -p "$buildlog/buildlogs"
@@ -241,13 +242,11 @@ if [ "$pkgsort" = ports ]; then
     fi
 
 else
-    export PKG_PATH="$pkgserver/$(uname -r)/packages/$(machine)"
+    PKG_PATH="$pkgserver/$(uname -r)/packages/$(machine)"
     if ! pkg_info -Q crdtools | grep -q installed; then
     pkg_add cdrtools
     fi
 fi
-
-####################################
 
 cd "$store" || exit 1;
 
